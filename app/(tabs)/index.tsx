@@ -1,75 +1,267 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
+import { JobCard } from '@/components/JobCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { FirebaseService } from '@/services/firebaseService';
+import { Job, JobMatch } from '@/types';
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+  
+  const [jobMatches, setJobMatches] = useState<JobMatch[]>([]);
+  const [recentJobs, setRecentJobs] = useState<Job[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Mock current user ID - in a real app this would come from authentication
+  const currentUserId = '2';
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      // Get job matches for current user
+      const matches = await FirebaseService.getJobMatchesByUserId(currentUserId);
+      setJobMatches(matches);
+
+      // Get recent jobs
+      const recent = await FirebaseService.getRecentJobs(5);
+      setRecentJobs(recent);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      // Fallback to empty arrays if Firebase is not configured
+      setJobMatches([]);
+      setRecentJobs([]);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  const handleJobPress = (job: Job) => {
+    // Navigate to job details - for now just show an alert
+    console.log('Job pressed:', job.title);
+  };
+
+  const handleViewAllJobs = () => {
+    router.push('/(tabs)/browse');
+  };
+
+  const handlePostJob = () => {
+    router.push('/(tabs)/post');
+  };
+
+  const getMatchJob = async (match: JobMatch): Promise<Job | undefined> => {
+    try {
+      const job = await FirebaseService.getJobById(match.jobId);
+      return job || undefined;
+    } catch (error) {
+      console.error('Error getting job for match:', error);
+      return undefined;
+    }
+  };
+
+  const [matchJobs, setMatchJobs] = useState<{[key: string]: Job}>({});
+
+  useEffect(() => {
+    // Load job details for matches
+    const loadMatchJobs = async () => {
+      const jobsMap: {[key: string]: Job} = {};
+      for (const match of jobMatches) {
+        const job = await getMatchJob(match);
+        if (job) {
+          jobsMap[match.jobId] = job;
+        }
+      }
+      setMatchJobs(jobsMap);
+    };
+
+    if (jobMatches.length > 0) {
+      loadMatchJobs();
+    }
+  }, [jobMatches]);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
+    <ScrollView 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      {/* Header */}
+      <ThemedView style={styles.header}>
+        <ThemedText type="title">Welcome to Workly!</ThemedText>
+        <ThemedText style={styles.subtitle}>
+          Find your next opportunity or post a job
+        </ThemedText>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
+
+      {/* Quick Actions */}
+      <ThemedView style={styles.quickActions}>
+        <TouchableOpacity 
+          style={[styles.actionButton, { backgroundColor: colors.tint }]}
+          onPress={handlePostJob}
+        >
+          <ThemedText style={styles.actionButtonText}>Post a Job</ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.tint }]}
+          onPress={handleViewAllJobs}
+        >
+          <ThemedText style={[styles.actionButtonText, { color: colors.tint }]}>
+            Browse All Jobs
+          </ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+
+      {/* Job Matches */}
+      {jobMatches.length > 0 && (
+        <ThemedView style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="subtitle">Recommended for You</ThemedText>
+            <TouchableOpacity onPress={handleViewAllJobs}>
+              <ThemedText style={[styles.seeAllText, { color: colors.tint }]}>
+                See All
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {jobMatches.slice(0, 3).map((match) => {
+              const job = matchJobs[match.jobId];
+              if (!job) return null;
+              
+              return (
+                <View key={match.jobId} style={styles.matchCard}>
+                  <JobCard
+                    job={job}
+                    onPress={handleJobPress}
+                    showMatchScore={true}
+                    matchScore={match.matchScore}
+                  />
+                </View>
+              );
             })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
+          </ScrollView>
+        </ThemedView>
+      )}
+
+      {/* Recent Jobs */}
+      <ThemedView style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <ThemedText type="subtitle">Recent Jobs</ThemedText>
+          <TouchableOpacity onPress={handleViewAllJobs}>
+            <ThemedText style={[styles.seeAllText, { color: colors.tint }]}>
+              See All
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+        {recentJobs.map((job) => (
+          <JobCard
+            key={job.id}
+            job={job}
+            onPress={handleJobPress}
+          />
+        ))}
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
+
+      {/* Stats */}
+      <ThemedView style={styles.statsContainer}>
+        <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
+          <ThemedText style={styles.statNumber}>{jobMatches.length}</ThemedText>
+          <ThemedText style={styles.statLabel}>Job Matches</ThemedText>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
+          <ThemedText style={styles.statNumber}>{recentJobs.length}</ThemedText>
+          <ThemedText style={styles.statLabel}>New Jobs</ThemedText>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
+          <ThemedText style={styles.statNumber}>15</ThemedText>
+          <ThemedText style={styles.statLabel}>Categories</ThemedText>
+        </View>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    padding: 16,
+  },
+  header: {
+    marginBottom: 24,
+  },
+  subtitle: {
+    fontSize: 16,
+    marginTop: 4,
+    opacity: 0.7,
+  },
+  quickActions: {
     flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     alignItems: 'center',
-    gap: 8,
+    borderWidth: 1,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  matchCard: {
+    width: 300,
+    marginRight: 12,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  statCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    opacity: 0.7,
+    textAlign: 'center',
   },
 });
