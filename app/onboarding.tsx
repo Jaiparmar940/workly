@@ -510,7 +510,7 @@ export default function OnboardingScreen() {
               styles.button,
               styles.primaryButton,
               {
-                backgroundColor: canProceed() ? colors.tint : colors.tabIconDefault,
+                backgroundColor: canProceed() ? '#0a7ea4' : colors.tabIconDefault,
                 flex: currentStep === 1 ? 1 : 0.6,
               },
             ]}

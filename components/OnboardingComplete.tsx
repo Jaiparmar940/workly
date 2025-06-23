@@ -3,7 +3,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import React from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface OnboardingCompleteProps {
   onComplete: () => void;
@@ -23,47 +23,53 @@ export const OnboardingComplete: React.FC<OnboardingCompleteProps> = ({
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedView style={styles.content}>
-        <ThemedText style={[styles.emoji, { color: colors.text }]}>✅</ThemedText>
-        
-        <ThemedText type="title" style={styles.title}>
-          {title}
-        </ThemedText>
-        
-        <ThemedText style={[styles.subtitle, { color: colors.tabIconDefault }]}>
-          {subtitle}
-        </ThemedText>
-        
-        <ThemedView style={styles.benefitsContainer}>
-          <ThemedText style={[styles.benefitsTitle, { color: colors.text }]}>
-            What happens next:
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <ThemedView style={styles.content}>
+          <ThemedText style={{ fontSize: 50, marginBottom: 10 }}></ThemedText>
+          <ThemedText style={[styles.emoji, { color: colors.text }]}>✅</ThemedText>
+          
+          <ThemedText type="title" style={styles.title}>
+            {title}
           </ThemedText>
           
-          <ThemedView style={styles.benefitItem}>
-            <ThemedText style={styles.benefitIcon}>🎯</ThemedText>
-            <ThemedText style={[styles.benefitText, { color: colors.tabIconDefault }]}>
-              AI will analyze your profile and find matching jobs
-            </ThemedText>
-          </ThemedView>
+          <ThemedText style={[styles.subtitle, { color: colors.tabIconDefault }]}>
+            {subtitle}
+          </ThemedText>
           
-          <ThemedView style={styles.benefitItem}>
-            <ThemedText style={styles.benefitIcon}>📱</ThemedText>
-            <ThemedText style={[styles.benefitText, { color: colors.tabIconDefault }]}>
-              You'll receive notifications for new opportunities
+          <ThemedView style={styles.benefitsContainer}>
+            <ThemedText style={[styles.benefitsTitle, { color: colors.text }]}>
+              What happens next:
             </ThemedText>
-          </ThemedView>
-          
-          <ThemedView style={styles.benefitItem}>
-            <ThemedText style={styles.benefitIcon}>⚡</ThemedText>
-            <ThemedText style={[styles.benefitText, { color: colors.tabIconDefault }]}>
-              Start browsing and applying to jobs right away
-            </ThemedText>
+            
+            <ThemedView style={styles.benefitItem}>
+              <ThemedText style={styles.benefitIcon}>🎯</ThemedText>
+              <ThemedText style={[styles.benefitText, { color: colors.tabIconDefault }]}>
+                AI will analyze your profile and find matching jobs
+              </ThemedText>
+            </ThemedView>
+            
+            <ThemedView style={styles.benefitItem}>
+              <ThemedText style={styles.benefitIcon}>📱</ThemedText>
+              <ThemedText style={[styles.benefitText, { color: colors.tabIconDefault }]}>
+                You'll receive notifications for new opportunities
+              </ThemedText>
+            </ThemedView>
+            
+            <ThemedView style={styles.benefitItem}>
+              <ThemedText style={styles.benefitIcon}>⚡</ThemedText>
+              <ThemedText style={[styles.benefitText, { color: colors.tabIconDefault }]}>
+                Start browsing and applying to jobs right away
+              </ThemedText>
+            </ThemedView>
           </ThemedView>
         </ThemedView>
-      </ThemedView>
+      </ScrollView>
       
       <TouchableOpacity
-        style={[styles.completeButton, { backgroundColor: colors.tint }]}
+        style={[styles.completeButton, { backgroundColor: '#0a7ea4' }]}
         onPress={onComplete}
       >
         <ThemedText style={[styles.completeButtonText, { color: 'white' }]}>
@@ -77,9 +83,12 @@ export const OnboardingComplete: React.FC<OnboardingCompleteProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     paddingHorizontal: 24,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 140,
   },
   content: {
     alignItems: 'center',
@@ -88,6 +97,8 @@ const styles = StyleSheet.create({
   emoji: {
     fontSize: 64,
     marginBottom: 24,
+    marginTop: 40,
+    lineHeight: 64,
   },
   title: {
     fontSize: 28,
@@ -112,13 +123,14 @@ const styles = StyleSheet.create({
   },
   benefitItem: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 12,
     paddingHorizontal: 16,
   },
   benefitIcon: {
     fontSize: 20,
     marginRight: 12,
+    marginTop: 2,
   },
   benefitText: {
     fontSize: 14,
@@ -132,6 +144,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 32,
     minWidth: 200,
+    marginBottom: 40,
   },
   completeButtonText: {
     color: 'white',

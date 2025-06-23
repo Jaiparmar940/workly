@@ -7,7 +7,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { FirebaseService } from '@/services/firebaseService';
 import { Job } from '@/types';
 import React, { useEffect, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet } from 'react-native';
+import { FlatList, RefreshControl, SafeAreaView, StyleSheet, View } from 'react-native';
 
 export default function BrowseScreen() {
   const colorScheme = useColorScheme();
@@ -120,18 +120,20 @@ export default function BrowseScreen() {
   );
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: colors.background }]}>
-      <SearchAndFilter
-        onSearch={handleSearch}
-        onFilterChange={handleFilterChange}
-        filters={filters}
-      />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={{ paddingHorizontal: 16, marginTop: 24 }}>
+        <SearchAndFilter
+          onSearch={handleSearch}
+          onFilterChange={handleFilterChange}
+          filters={filters}
+        />
+      </View>
       
       <FlatList
         data={filteredJobs}
         renderItem={renderJobItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -143,7 +145,7 @@ export default function BrowseScreen() {
           </ThemedText>
         }
       />
-    </ThemedView>
+    </SafeAreaView>
   );
 }
 

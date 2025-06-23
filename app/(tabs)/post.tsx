@@ -6,7 +6,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { FirebaseService } from '@/services/firebaseService';
 import { JobCategory, JobComplexity, JobStatus, JobType } from '@/types';
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, SafeAreaView, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function PostJobScreen() {
   const colorScheme = useColorScheme();
@@ -167,235 +167,237 @@ export default function PostJobScreen() {
   );
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ThemedView style={styles.header}>
-        <ThemedText type="title">Post a New Job</ThemedText>
-        <ThemedText style={styles.subtitle}>
-          Fill out the form below to create your job posting
-        </ThemedText>
-      </ThemedView>
-
-      <ThemedView style={styles.form}>
-        {/* Basic Information */}
-        <ThemedView style={styles.section}>
-          <ThemedText type="subtitle">Basic Information</ThemedText>
-          
-          <ThemedText style={styles.label}>Job Title *</ThemedText>
-          <TextInput
-            style={[styles.input, { 
-              backgroundColor: colors.background, 
-              borderColor: colors.tabIconDefault,
-              color: colors.text 
-            }]}
-            value={formData.title}
-            onChangeText={(value) => handleInputChange('title', value)}
-            placeholder="e.g., React Native Developer"
-            placeholderTextColor={colors.tabIconDefault}
-          />
-
-          <ThemedText style={styles.label}>Description *</ThemedText>
-          <TextInput
-            style={[styles.textArea, { 
-              backgroundColor: colors.background, 
-              borderColor: colors.tabIconDefault,
-              color: colors.text 
-            }]}
-            value={formData.description}
-            onChangeText={(value) => handleInputChange('description', value)}
-            placeholder="Describe the job requirements, responsibilities, and what you're looking for..."
-            placeholderTextColor={colors.tabIconDefault}
-            multiline
-            numberOfLines={4}
-          />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingHorizontal: 16 }}>
+        <ThemedView style={[styles.header, { marginTop: 24 }]}>
+          <ThemedText type="title">Post a New Job</ThemedText>
+          <ThemedText style={styles.subtitle}>
+            Fill out the form below to create your job posting
+          </ThemedText>
         </ThemedView>
 
-        {/* Job Details */}
-        <ThemedView style={styles.section}>
-          <ThemedText type="subtitle">Job Details</ThemedText>
-          
-          <ThemedText style={styles.label}>Category</ThemedText>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ThemedView style={styles.form}>
+          {/* Basic Information */}
+          <ThemedView style={styles.section}>
+            <ThemedText type="subtitle">Basic Information</ThemedText>
+            
+            <ThemedText style={styles.label}>Job Title *</ThemedText>
+            <TextInput
+              style={[styles.input, { 
+                backgroundColor: colors.background, 
+                borderColor: colors.tabIconDefault,
+                color: colors.text 
+              }]}
+              value={formData.title}
+              onChangeText={(value) => handleInputChange('title', value)}
+              placeholder="e.g., React Native Developer"
+              placeholderTextColor={colors.tabIconDefault}
+            />
+
+            <ThemedText style={styles.label}>Description *</ThemedText>
+            <TextInput
+              style={[styles.textArea, { 
+                backgroundColor: colors.background, 
+                borderColor: colors.tabIconDefault,
+                color: colors.text 
+              }]}
+              value={formData.description}
+              onChangeText={(value) => handleInputChange('description', value)}
+              placeholder="Describe the job requirements, responsibilities, and what you're looking for..."
+              placeholderTextColor={colors.tabIconDefault}
+              multiline
+              numberOfLines={4}
+            />
+          </ThemedView>
+
+          {/* Job Details */}
+          <ThemedView style={styles.section}>
+            <ThemedText type="subtitle">Job Details</ThemedText>
+            
+            <ThemedText style={styles.label}>Category</ThemedText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.selectionContainer}>
+                {Object.values(JobCategory).slice(0, 8).map((category) => (
+                  <SelectionButton
+                    key={category}
+                    title={category}
+                    selected={selectedCategory === category}
+                    onPress={() => setSelectedCategory(category)}
+                  />
+                ))}
+              </View>
+            </ScrollView>
+
+            <ThemedText style={styles.label}>Job Type</ThemedText>
             <View style={styles.selectionContainer}>
-              {Object.values(JobCategory).slice(0, 8).map((category) => (
+              {Object.values(JobType).map((type) => (
                 <SelectionButton
-                  key={category}
-                  title={category}
-                  selected={selectedCategory === category}
-                  onPress={() => setSelectedCategory(category)}
+                  key={type}
+                  title={type}
+                  selected={selectedType === type}
+                  onPress={() => setSelectedType(type)}
                 />
               ))}
             </View>
-          </ScrollView>
 
-          <ThemedText style={styles.label}>Job Type</ThemedText>
-          <View style={styles.selectionContainer}>
-            {Object.values(JobType).map((type) => (
-              <SelectionButton
-                key={type}
-                title={type}
-                selected={selectedType === type}
-                onPress={() => setSelectedType(type)}
-              />
-            ))}
-          </View>
-
-          <ThemedText style={styles.label}>Complexity Level</ThemedText>
-          <View style={styles.selectionContainer}>
-            {Object.values(JobComplexity).map((complexity) => (
-              <SelectionButton
-                key={complexity}
-                title={complexity}
-                selected={selectedComplexity === complexity}
-                onPress={() => setSelectedComplexity(complexity)}
-              />
-            ))}
-          </View>
-        </ThemedView>
-
-        {/* Budget */}
-        <ThemedView style={styles.section}>
-          <ThemedText type="subtitle">Budget</ThemedText>
-          
-          <View style={styles.budgetContainer}>
-            <View style={styles.budgetInput}>
-              <ThemedText style={styles.label}>Minimum ($)</ThemedText>
-              <TextInput
-                style={[styles.input, { 
-                  backgroundColor: colors.background, 
-                  borderColor: colors.tabIconDefault,
-                  color: colors.text 
-                }]}
-                value={formData.budgetMin}
-                onChangeText={(value) => handleInputChange('budgetMin', value)}
-                placeholder="0"
-                placeholderTextColor={colors.tabIconDefault}
-                keyboardType="numeric"
-              />
+            <ThemedText style={styles.label}>Complexity Level</ThemedText>
+            <View style={styles.selectionContainer}>
+              {Object.values(JobComplexity).map((complexity) => (
+                <SelectionButton
+                  key={complexity}
+                  title={complexity}
+                  selected={selectedComplexity === complexity}
+                  onPress={() => setSelectedComplexity(complexity)}
+                />
+              ))}
             </View>
-            <View style={styles.budgetInput}>
-              <ThemedText style={styles.label}>Maximum ($)</ThemedText>
-              <TextInput
-                style={[styles.input, { 
-                  backgroundColor: colors.background, 
-                  borderColor: colors.tabIconDefault,
-                  color: colors.text 
-                }]}
-                value={formData.budgetMax}
-                onChangeText={(value) => handleInputChange('budgetMax', value)}
-                placeholder="1000"
-                placeholderTextColor={colors.tabIconDefault}
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
-        </ThemedView>
+          </ThemedView>
 
-        {/* Location */}
-        <ThemedView style={styles.section}>
-          <ThemedText type="subtitle">Location</ThemedText>
-          
-          <View style={styles.locationContainer}>
-            <View style={styles.locationInput}>
-              <ThemedText style={styles.label}>City</ThemedText>
-              <TextInput
-                style={[styles.input, { 
-                  backgroundColor: colors.background, 
-                  borderColor: colors.tabIconDefault,
-                  color: colors.text 
-                }]}
-                value={formData.city}
-                onChangeText={(value) => handleInputChange('city', value)}
-                placeholder="San Francisco"
-                placeholderTextColor={colors.tabIconDefault}
-              />
+          {/* Budget */}
+          <ThemedView style={styles.section}>
+            <ThemedText type="subtitle">Budget</ThemedText>
+            
+            <View style={styles.budgetContainer}>
+              <View style={styles.budgetInput}>
+                <ThemedText style={styles.label}>Minimum ($)</ThemedText>
+                <TextInput
+                  style={[styles.input, { 
+                    backgroundColor: colors.background, 
+                    borderColor: colors.tabIconDefault,
+                    color: colors.text 
+                  }]}
+                  value={formData.budgetMin}
+                  onChangeText={(value) => handleInputChange('budgetMin', value)}
+                  placeholder="0"
+                  placeholderTextColor={colors.tabIconDefault}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.budgetInput}>
+                <ThemedText style={styles.label}>Maximum ($)</ThemedText>
+                <TextInput
+                  style={[styles.input, { 
+                    backgroundColor: colors.background, 
+                    borderColor: colors.tabIconDefault,
+                    color: colors.text 
+                  }]}
+                  value={formData.budgetMax}
+                  onChangeText={(value) => handleInputChange('budgetMax', value)}
+                  placeholder="1000"
+                  placeholderTextColor={colors.tabIconDefault}
+                  keyboardType="numeric"
+                />
+              </View>
             </View>
-            <View style={styles.locationInput}>
-              <ThemedText style={styles.label}>State</ThemedText>
-              <TextInput
-                style={[styles.input, { 
-                  backgroundColor: colors.background, 
-                  borderColor: colors.tabIconDefault,
-                  color: colors.text 
-                }]}
-                value={formData.state}
-                onChangeText={(value) => handleInputChange('state', value)}
-                placeholder="CA"
-                placeholderTextColor={colors.tabIconDefault}
-              />
+          </ThemedView>
+
+          {/* Location */}
+          <ThemedView style={styles.section}>
+            <ThemedText type="subtitle">Location</ThemedText>
+            
+            <View style={styles.locationContainer}>
+              <View style={styles.locationInput}>
+                <ThemedText style={styles.label}>City</ThemedText>
+                <TextInput
+                  style={[styles.input, { 
+                    backgroundColor: colors.background, 
+                    borderColor: colors.tabIconDefault,
+                    color: colors.text 
+                  }]}
+                  value={formData.city}
+                  onChangeText={(value) => handleInputChange('city', value)}
+                  placeholder="San Francisco"
+                  placeholderTextColor={colors.tabIconDefault}
+                />
+              </View>
+              <View style={styles.locationInput}>
+                <ThemedText style={styles.label}>State</ThemedText>
+                <TextInput
+                  style={[styles.input, { 
+                    backgroundColor: colors.background, 
+                    borderColor: colors.tabIconDefault,
+                    color: colors.text 
+                  }]}
+                  value={formData.state}
+                  onChangeText={(value) => handleInputChange('state', value)}
+                  placeholder="CA"
+                  placeholderTextColor={colors.tabIconDefault}
+                />
+              </View>
             </View>
-          </View>
 
-          <ThemedText style={styles.label}>ZIP Code</ThemedText>
-          <TextInput
-            style={[styles.input, { 
-              backgroundColor: colors.background, 
-              borderColor: colors.tabIconDefault,
-              color: colors.text 
-            }]}
-            value={formData.zipCode}
-            onChangeText={(value) => handleInputChange('zipCode', value)}
-            placeholder="94102"
-            placeholderTextColor={colors.tabIconDefault}
-            keyboardType="numeric"
-          />
+            <ThemedText style={styles.label}>ZIP Code</ThemedText>
+            <TextInput
+              style={[styles.input, { 
+                backgroundColor: colors.background, 
+                borderColor: colors.tabIconDefault,
+                color: colors.text 
+              }]}
+              value={formData.zipCode}
+              onChangeText={(value) => handleInputChange('zipCode', value)}
+              placeholder="94102"
+              placeholderTextColor={colors.tabIconDefault}
+              keyboardType="numeric"
+            />
 
+            <TouchableOpacity
+              style={[styles.checkbox, { borderColor: colors.tint }]}
+              onPress={() => setFormData(prev => ({ ...prev, isRemote: !prev.isRemote }))}
+            >
+              <View style={[
+                styles.checkboxInner,
+                { backgroundColor: formData.isRemote ? colors.tint : 'transparent' }
+              ]} />
+              <ThemedText style={styles.checkboxLabel}>Remote work available</ThemedText>
+            </TouchableOpacity>
+          </ThemedView>
+
+          {/* Requirements & Skills */}
+          <ThemedView style={styles.section}>
+            <ThemedText type="subtitle">Requirements & Skills</ThemedText>
+            
+            <ThemedText style={styles.label}>Requirements (comma-separated)</ThemedText>
+            <TextInput
+              style={[styles.textArea, { 
+                backgroundColor: colors.background, 
+                borderColor: colors.tabIconDefault,
+                color: colors.text 
+              }]}
+              value={formData.requirements}
+              onChangeText={(value) => handleInputChange('requirements', value)}
+              placeholder="e.g., 3+ years experience, React Native, TypeScript"
+              placeholderTextColor={colors.tabIconDefault}
+              multiline
+              numberOfLines={3}
+            />
+
+            <ThemedText style={styles.label}>Required Skills (comma-separated)</ThemedText>
+            <TextInput
+              style={[styles.textArea, { 
+                backgroundColor: colors.background, 
+                borderColor: colors.tabIconDefault,
+                color: colors.text 
+              }]}
+              value={formData.skills}
+              onChangeText={(value) => handleInputChange('skills', value)}
+              placeholder="e.g., React Native, TypeScript, Node.js"
+              placeholderTextColor={colors.tabIconDefault}
+              multiline
+              numberOfLines={3}
+            />
+          </ThemedView>
+
+          {/* Submit Button */}
           <TouchableOpacity
-            style={[styles.checkbox, { borderColor: colors.tint }]}
-            onPress={() => setFormData(prev => ({ ...prev, isRemote: !prev.isRemote }))}
+            style={[styles.submitButton, { backgroundColor: colors.tint }]}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
           >
-            <View style={[
-              styles.checkboxInner,
-              { backgroundColor: formData.isRemote ? colors.tint : 'transparent' }
-            ]} />
-            <ThemedText style={styles.checkboxLabel}>Remote work available</ThemedText>
+            <ThemedText style={styles.submitButtonText}>Post Job</ThemedText>
           </TouchableOpacity>
         </ThemedView>
-
-        {/* Requirements & Skills */}
-        <ThemedView style={styles.section}>
-          <ThemedText type="subtitle">Requirements & Skills</ThemedText>
-          
-          <ThemedText style={styles.label}>Requirements (comma-separated)</ThemedText>
-          <TextInput
-            style={[styles.textArea, { 
-              backgroundColor: colors.background, 
-              borderColor: colors.tabIconDefault,
-              color: colors.text 
-            }]}
-            value={formData.requirements}
-            onChangeText={(value) => handleInputChange('requirements', value)}
-            placeholder="e.g., 3+ years experience, React Native, TypeScript"
-            placeholderTextColor={colors.tabIconDefault}
-            multiline
-            numberOfLines={3}
-          />
-
-          <ThemedText style={styles.label}>Required Skills (comma-separated)</ThemedText>
-          <TextInput
-            style={[styles.textArea, { 
-              backgroundColor: colors.background, 
-              borderColor: colors.tabIconDefault,
-              color: colors.text 
-            }]}
-            value={formData.skills}
-            onChangeText={(value) => handleInputChange('skills', value)}
-            placeholder="e.g., React Native, TypeScript, Node.js"
-            placeholderTextColor={colors.tabIconDefault}
-            multiline
-            numberOfLines={3}
-          />
-        </ThemedView>
-
-        {/* Submit Button */}
-        <TouchableOpacity
-          style={[styles.submitButton, { backgroundColor: colors.tint }]}
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-        >
-          <ThemedText style={styles.submitButtonText}>Post Job</ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -403,6 +405,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+  },
+  scrollView: {
+    flex: 1,
   },
   header: {
     marginBottom: 24,

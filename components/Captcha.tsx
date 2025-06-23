@@ -151,7 +151,7 @@ export const Captcha: React.FC<CaptchaProps> = ({ onVerify, onRefresh }) => {
           style={[
             styles.verifyButton, 
             { 
-              backgroundColor: colors.tint,
+              backgroundColor: '#0a7ea4',
               opacity: attempts >= 3 ? 0.5 : 1
             }
           ]}

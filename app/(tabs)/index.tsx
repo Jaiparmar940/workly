@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { JobCard } from '@/components/JobCard';
 import { ThemedText } from '@/components/ThemedText';
@@ -93,109 +93,114 @@ export default function HomeScreen() {
   }, [jobMatches]);
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: colors.background }]}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {/* Header */}
-      <ThemedView style={styles.header}>
-        <ThemedText type="title">Welcome to Workly!</ThemedText>
-        <ThemedText style={styles.subtitle}>
-          Find your next opportunity or post a job
-        </ThemedText>
-      </ThemedView>
-
-      {/* Quick Actions */}
-      <ThemedView style={styles.quickActions}>
-        <TouchableOpacity 
-          style={[styles.actionButton, { backgroundColor: colors.tint }]}
-          onPress={handlePostJob}
-        >
-          <ThemedText style={styles.actionButtonText}>Post a Job</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.tint }]}
-          onPress={handleViewAllJobs}
-        >
-          <ThemedText style={[styles.actionButtonText, { color: colors.tint }]}>
-            Browse All Jobs
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView 
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Header */}
+        <ThemedView style={styles.header}>
+          <ThemedText type="title">Welcome to Workly!</ThemedText>
+          <ThemedText style={styles.subtitle}>
+            Find your next opportunity or post a job
           </ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
+        </ThemedView>
 
-      {/* Job Matches */}
-      {jobMatches.length > 0 && (
+        {/* Quick Actions */}
+        <ThemedView style={styles.quickActions}>
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: colors.tint }]}
+            onPress={handlePostJob}
+          >
+            <ThemedText style={styles.actionButtonText}>Post a Job</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.tint }]}
+            onPress={handleViewAllJobs}
+          >
+            <ThemedText style={[styles.actionButtonText, { color: colors.tint }]}>
+              Browse All Jobs
+            </ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+
+        {/* Job Matches */}
+        {jobMatches.length > 0 && (
+          <ThemedView style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <ThemedText type="subtitle">Recommended for You</ThemedText>
+              <TouchableOpacity onPress={handleViewAllJobs}>
+                <ThemedText style={[styles.seeAllText, { color: colors.tint }]}>
+                  See All
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {jobMatches.slice(0, 3).map((match) => {
+                const job = matchJobs[match.jobId];
+                if (!job) return null;
+                
+                return (
+                  <View key={match.jobId} style={styles.matchCard}>
+                    <JobCard
+                      job={job}
+                      onPress={handleJobPress}
+                      showMatchScore={true}
+                      matchScore={match.matchScore}
+                    />
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </ThemedView>
+        )}
+
+        {/* Recent Jobs */}
         <ThemedView style={styles.section}>
           <View style={styles.sectionHeader}>
-            <ThemedText type="subtitle">Recommended for You</ThemedText>
+            <ThemedText type="subtitle">Recent Jobs</ThemedText>
             <TouchableOpacity onPress={handleViewAllJobs}>
               <ThemedText style={[styles.seeAllText, { color: colors.tint }]}>
                 See All
               </ThemedText>
             </TouchableOpacity>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {jobMatches.slice(0, 3).map((match) => {
-              const job = matchJobs[match.jobId];
-              if (!job) return null;
-              
-              return (
-                <View key={match.jobId} style={styles.matchCard}>
-                  <JobCard
-                    job={job}
-                    onPress={handleJobPress}
-                    showMatchScore={true}
-                    matchScore={match.matchScore}
-                  />
-                </View>
-              );
-            })}
-          </ScrollView>
+          {recentJobs.map((job) => (
+            <JobCard
+              key={job.id}
+              job={job}
+              onPress={handleJobPress}
+            />
+          ))}
         </ThemedView>
-      )}
 
-      {/* Recent Jobs */}
-      <ThemedView style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <ThemedText type="subtitle">Recent Jobs</ThemedText>
-          <TouchableOpacity onPress={handleViewAllJobs}>
-            <ThemedText style={[styles.seeAllText, { color: colors.tint }]}>
-              See All
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-        {recentJobs.map((job) => (
-          <JobCard
-            key={job.id}
-            job={job}
-            onPress={handleJobPress}
-          />
-        ))}
-      </ThemedView>
-
-      {/* Stats */}
-      <ThemedView style={styles.statsContainer}>
-        <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
-          <ThemedText style={styles.statNumber}>{jobMatches.length}</ThemedText>
-          <ThemedText style={styles.statLabel}>Job Matches</ThemedText>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
-          <ThemedText style={styles.statNumber}>{recentJobs.length}</ThemedText>
-          <ThemedText style={styles.statLabel}>New Jobs</ThemedText>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
-          <ThemedText style={styles.statNumber}>15</ThemedText>
-          <ThemedText style={styles.statLabel}>Categories</ThemedText>
-        </View>
-      </ThemedView>
-    </ScrollView>
+        {/* Stats */}
+        <ThemedView style={styles.statsContainer}>
+          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
+            <ThemedText style={styles.statNumber}>{jobMatches.length}</ThemedText>
+            <ThemedText style={styles.statLabel}>Job Matches</ThemedText>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
+            <ThemedText style={styles.statNumber}>{recentJobs.length}</ThemedText>
+            <ThemedText style={styles.statLabel}>New Jobs</ThemedText>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
+            <ThemedText style={styles.statNumber}>15</ThemedText>
+            <ThemedText style={styles.statLabel}>Categories</ThemedText>
+          </View>
+        </ThemedView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  scrollView: {
     flex: 1,
     padding: 16,
   },

@@ -7,7 +7,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { FirebaseService } from '@/services/firebaseService';
 import { Application, Job } from '@/types';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
@@ -179,169 +179,187 @@ export default function ProfileScreen() {
 
   if (!userProfile) {
     return (
-      <ThemedView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <ThemedText>Loading profile...</ThemedText>
-      </ThemedView>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Profile Header */}
-      <ThemedView style={styles.profileHeader}>
-        <View style={styles.avatarContainer}>
-          {userProfile.avatar ? (
-            <Image source={{ uri: userProfile.avatar }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.tint }]}>
-              <ThemedText style={styles.avatarText}>
-                {userProfile.name.charAt(0).toUpperCase()}
-              </ThemedText>
-            </View>
-          )}
-        </View>
-        
-        <View style={styles.profileInfo}>
-          <ThemedText type="title">{userProfile.name}</ThemedText>
-          <ThemedText style={styles.email}>{userProfile.email}</ThemedText>
-          <ThemedText style={styles.location}>
-            {userProfile.location.city}, {userProfile.location.state}
-          </ThemedText>
-        </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingHorizontal: 16 }}>
+        {/* Profile Header */}
+        <ThemedView style={[styles.profileHeader, { marginTop: 24 }]}>
+          <View style={styles.avatarContainer}>
+            {userProfile.avatar ? (
+              <Image source={{ uri: userProfile.avatar }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatarPlaceholder, { backgroundColor: colors.tint }]}>
+                <ThemedText style={styles.avatarText}>
+                  {userProfile.name.charAt(0).toUpperCase()}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+          
+          <View style={styles.profileInfo}>
+            <ThemedText type="title">{userProfile.name}</ThemedText>
+            <ThemedText style={styles.email}>{userProfile.email}</ThemedText>
+            <ThemedText style={styles.location}>
+              {userProfile.location.city}, {userProfile.location.state}
+            </ThemedText>
+          </View>
 
-        <TouchableOpacity
-          style={[styles.editButton, { borderColor: colors.tint }]}
-          onPress={handleEditProfile}
-        >
-          <ThemedText style={[styles.editButtonText, { color: colors.tint }]}>
-            Edit
-          </ThemedText>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.editButton, { borderColor: colors.tint }]}
+            onPress={handleEditProfile}
+          >
+            <ThemedText style={[styles.editButtonText, { color: colors.tint }]}>
+              Edit
+            </ThemedText>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.refreshButton, { borderColor: colors.tint }]}
-          onPress={handleRefresh}
-        >
-          <ThemedText style={[styles.refreshButtonText, { color: colors.tint }]}>
-            Refresh
-          </ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
-
-      {/* Stats */}
-      <ThemedView style={styles.statsContainer}>
-        <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
-          <ThemedText style={styles.statNumber}>{userProfile.rating}</ThemedText>
-          <ThemedText style={styles.statLabel}>Rating</ThemedText>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
-          <ThemedText style={styles.statNumber}>{userProfile.completedJobs}</ThemedText>
-          <ThemedText style={styles.statLabel}>Completed</ThemedText>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
-          <ThemedText style={styles.statNumber}>{postedJobs.length}</ThemedText>
-          <ThemedText style={styles.statLabel}>Posted</ThemedText>
-        </View>
-      </ThemedView>
-
-      {/* Skills */}
-      <ThemedView style={styles.section}>
-        <ThemedText type="subtitle">Skills</ThemedText>
-        <View style={styles.skillsContainer}>
-          {userProfile.skills.map((skill, index) => (
-            <View key={index} style={[styles.skillTag, { backgroundColor: colors.tint + '20' }]}>
-              <ThemedText style={[styles.skillText, { color: colors.tint }]}>
-                {skill}
-              </ThemedText>
-            </View>
-          ))}
-        </View>
-      </ThemedView>
-
-      {/* Experience */}
-      <ThemedView style={styles.section}>
-        <ThemedText type="subtitle">Experience</ThemedText>
-        <ThemedText style={styles.experienceText}>{userProfile.experience}</ThemedText>
-      </ThemedView>
-
-      {/* Interests */}
-      <ThemedView style={styles.section}>
-        <ThemedText type="subtitle">Interests</ThemedText>
-        <View style={styles.interestsContainer}>
-          {userProfile.interests.map((interest, index) => (
-            <View key={index} style={[styles.interestTag, { backgroundColor: colors.tint + '20' }]}>
-              <ThemedText style={[styles.interestText, { color: colors.tint }]}>
-                {interest}
-              </ThemedText>
-            </View>
-          ))}
-        </View>
-      </ThemedView>
-
-      {/* Tabs */}
-      <ThemedView style={styles.tabsContainer}>
-        <TabButton
-          title="Posted Jobs"
-          isActive={activeTab === 'posted'}
-          onPress={() => setActiveTab('posted')}
-        />
-        <TabButton
-          title="Applied Jobs"
-          isActive={activeTab === 'applied'}
-          onPress={() => setActiveTab('applied')}
-        />
-      </ThemedView>
-
-      {/* Content based on active tab */}
-      {activeTab === 'posted' ? (
-        <ThemedView style={styles.jobsContainer}>
-          {postedJobs.length === 0 ? (
-            <ThemedText style={styles.emptyText}>No jobs posted yet</ThemedText>
-          ) : (
-            postedJobs.map((job) => (
-              <JobCard
-                key={job.id}
-                job={job}
-                onPress={() => handleJobPress(job)}
-              />
-            ))
-          )}
+          <TouchableOpacity
+            style={[styles.refreshButton, { borderColor: colors.tint }]}
+            onPress={handleRefresh}
+          >
+            <ThemedText style={[styles.refreshButtonText, { color: colors.tint }]}>
+              Refresh
+            </ThemedText>
+          </TouchableOpacity>
         </ThemedView>
-      ) : (
-        <ThemedView style={styles.jobsContainer}>
-          {applications.length === 0 ? (
-            <ThemedText style={styles.emptyText}>No applications yet</ThemedText>
-          ) : (
-            applications.map((application) => {
-              const job = applicationJobs[application.jobId];
-              return job ? (
+
+        {/* Stats */}
+        <ThemedView style={styles.statsContainer}>
+          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
+            <ThemedText style={styles.statNumber}>{userProfile.rating}</ThemedText>
+            <ThemedText style={styles.statLabel}>Rating</ThemedText>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
+            <ThemedText style={styles.statNumber}>{userProfile.completedJobs}</ThemedText>
+            <ThemedText style={styles.statLabel}>Completed</ThemedText>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
+            <ThemedText style={styles.statNumber}>{postedJobs.length}</ThemedText>
+            <ThemedText style={styles.statLabel}>Posted</ThemedText>
+          </View>
+        </ThemedView>
+
+        {/* Skills */}
+        <ThemedView style={styles.section}>
+          <ThemedText type="subtitle">Skills</ThemedText>
+          <View style={styles.skillsContainer}>
+            {userProfile.skills.map((skill, index) => (
+              <View key={index} style={[styles.skillTag, { backgroundColor: colors.tint + '20' }]}>
+                <ThemedText style={[styles.skillText, { color: colors.tint }]}>
+                  {skill}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        </ThemedView>
+
+        {/* Experience */}
+        <ThemedView style={styles.section}>
+          <ThemedText type="subtitle">Experience</ThemedText>
+          <ThemedText style={styles.experienceText}>{userProfile.experience}</ThemedText>
+        </ThemedView>
+
+        {/* Interests */}
+        <ThemedView style={styles.section}>
+          <ThemedText type="subtitle">Interests</ThemedText>
+          <View style={styles.interestsContainer}>
+            {userProfile.interests.map((interest, index) => (
+              <View key={index} style={[styles.interestTag, { backgroundColor: colors.tint + '20' }]}>
+                <ThemedText style={[styles.interestText, { color: colors.tint }]}>
+                  {interest}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        </ThemedView>
+
+        {/* Tabs */}
+        <ThemedView style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              { backgroundColor: '#0a7ea4', borderColor: '#0a7ea4' } // Always blue
+            ]}
+            onPress={() => setActiveTab('posted')}
+          >
+            <ThemedText style={[styles.tabButtonText, { color: 'white' }]}>Posted Jobs</ThemedText>
+          </TouchableOpacity>
+          <TabButton
+            title="Applied Jobs"
+            isActive={activeTab === 'applied'}
+            onPress={() => setActiveTab('applied')}
+          />
+        </ThemedView>
+
+        {/* Content based on active tab */}
+        {activeTab === 'posted' ? (
+          <ThemedView style={styles.jobsContainer}>
+            {postedJobs.length === 0 ? (
+              <ThemedText style={styles.emptyText}>No jobs posted yet</ThemedText>
+            ) : (
+              postedJobs.map((job) => (
                 <JobCard
-                  key={application.id}
+                  key={job.id}
                   job={job}
                   onPress={() => handleJobPress(job)}
                 />
-              ) : null;
-            })
-          )}
-        </ThemedView>
-      )}
+              ))
+            )}
+          </ThemedView>
+        ) : (
+          <ThemedView style={styles.jobsContainer}>
+            {applications.length === 0 ? (
+              <ThemedText style={styles.emptyText}>No applications yet</ThemedText>
+            ) : (
+              applications.map((application) => {
+                const job = applicationJobs[application.jobId];
+                return job ? (
+                  <JobCard
+                    key={application.id}
+                    job={job}
+                    onPress={() => handleJobPress(job)}
+                  />
+                ) : null;
+              })
+            )}
+          </ThemedView>
+        )}
 
-      {/* Delete Account Button */}
-      <TouchableOpacity
-        style={[styles.deleteAccountButton, { backgroundColor: '#dc3545' }]}
-        onPress={handleDeleteAccount}
-      >
-        <ThemedText style={styles.deleteAccountButtonText}>Delete Account</ThemedText>
-      </TouchableOpacity>
+        {/* Logout Button */}
+        <TouchableOpacity
+          style={[
+            styles.logoutButton,
+            {
+              backgroundColor: colorScheme === 'dark' ? 'black' : 'white',
+              borderColor: '#dc3545',
+              borderWidth: 1,
+              marginTop: 20,
+              marginBottom: 8,
+            },
+          ]}
+          onPress={handleLogout}
+        >
+          <ThemedText style={[styles.logoutButtonText, { color: '#dc3545' }]}>Logout</ThemedText>
+        </TouchableOpacity>
 
-      {/* Logout Button */}
-      <TouchableOpacity
-        style={[styles.logoutButton, { backgroundColor: '#ff4444' }]}
-        onPress={handleLogout}
-      >
-        <ThemedText style={styles.logoutButtonText}>Logout</ThemedText>
-      </TouchableOpacity>
-    </ScrollView>
+        {/* Delete Account Button */}
+        <TouchableOpacity
+          style={[
+            styles.deleteAccountButton,
+            { backgroundColor: '#dc3545', marginTop: 0, marginBottom: 20 } // less space above, more below
+          ]}
+          onPress={handleDeleteAccount}
+        >
+          <ThemedText style={styles.deleteAccountButtonText}>Delete Account</ThemedText>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -516,5 +534,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
+  },
+  scrollView: {
+    flex: 1,
   },
 }); 

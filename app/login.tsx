@@ -214,7 +214,7 @@ export default function LoginScreen() {
             style={[
               styles.loginButton,
               {
-                backgroundColor: colors.tint,
+                backgroundColor: '#0a7ea4',
                 opacity: (loading || rateLimit.isBlocked) ? 0.7 : 1,
               },
             ]}
