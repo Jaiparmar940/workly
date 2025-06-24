@@ -6,6 +6,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { FirebaseService } from '@/services/firebaseService';
 import { Application, Job } from '@/types';
+import { useFocusEffect } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, Platform, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -24,6 +25,15 @@ export default function ProfileScreen() {
       loadUserData();
     }
   }, [user]);
+
+  // Refresh user data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user) {
+        loadUserData();
+      }
+    }, [user])
+  );
 
   const loadUserData = async () => {
     if (!user) return;

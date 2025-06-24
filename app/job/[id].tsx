@@ -3,7 +3,7 @@ import { Colors } from '@/constants/Colors';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { FirebaseService } from '@/services/firebaseService';
-import { Job } from '@/types';
+import { ApplicationStatus, Job } from '@/types';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Dimensions, FlatList, Image, SafeAreaView, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
@@ -61,16 +61,16 @@ export default function JobDetailsScreen() {
   };
 
   const checkInterestStatus = async () => {
-    if (!id) return;
+    if (!id || !user) return;
     
     try {
-      // TODO: Check if current user has already expressed interest in this job
-      // This would typically involve checking a database for existing interest records
-      // For now, we'll use a simple state check
-      const hasInterest = false; // Replace with actual database check
-      setHasExpressedInterest(hasInterest);
+      // Check if current user has already applied to this job
+      const userApplications = await FirebaseService.getApplicationsByUserId(user.uid);
+      const hasApplied = userApplications.some(app => app.jobId === id);
+      setHasExpressedInterest(hasApplied);
     } catch (error) {
       console.error('Error checking interest status:', error);
+      setHasExpressedInterest(false);
     }
   };
 
@@ -90,6 +90,18 @@ export default function JobDetailsScreen() {
       console.log('Debug - Job ID:', job?.id);
       console.log('Debug - Job Posted By:', job?.postedBy);
 
+      // Create application record
+      const applicationData = {
+        jobId: job!.id,
+        userId: user.uid,
+        coverLetter: message,
+        proposedRate: parseFloat(proposedPrice),
+        estimatedDuration: 'To be discussed',
+        status: ApplicationStatus.PENDING
+      };
+
+      await FirebaseService.createApplication(applicationData);
+
       // Create message in job poster's inbox
       await FirebaseService.createJobInterestMessage(
         user.uid,
@@ -103,13 +115,16 @@ export default function JobDetailsScreen() {
       setHasExpressedInterest(true);
       setProposedPrice('');
       setMessage('');
+      await checkInterestStatus();
     } catch (error) {
       console.error('Error expressing interest:', error);
       Alert.alert('Error', 'Failed to send interest. Please try again.');
     }
   };
 
-  const handleWithdrawInterest = () => {
+  const handleWithdrawInterest = async () => {
+    if (!id || !user) return;
+    
     Alert.alert(
       'Withdraw Interest',
       'Are you sure you want to withdraw your interest in this job?',
@@ -121,10 +136,23 @@ export default function JobDetailsScreen() {
         {
           text: 'Withdraw',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Remove interest from database
-            setHasExpressedInterest(false);
-            Alert.alert('Interest Withdrawn', 'Your interest has been withdrawn from this job.');
+          onPress: async () => {
+            try {
+              // Find and delete the application
+              const userApplications = await FirebaseService.getApplicationsByUserId(user.uid);
+              const application = userApplications.find(app => app.jobId === id);
+              
+              if (application) {
+                await FirebaseService.deleteApplication(application.id);
+                setHasExpressedInterest(false);
+                Alert.alert('Interest Withdrawn', 'Your interest has been withdrawn from this job.');
+              } else {
+                Alert.alert('Error', 'No application found for this job.');
+              }
+            } catch (error) {
+              console.error('Error withdrawing interest:', error);
+              Alert.alert('Error', 'Failed to withdraw interest. Please try again.');
+            }
           },
         },
       ]
