@@ -6,7 +6,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { FirebaseService } from '@/services/firebaseService';
 import { JobCategory, JobComplexity, JobStatus, JobType } from '@/types';
 import React, { useState } from 'react';
-import { Alert, SafeAreaView, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, SafeAreaView, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function PostJobScreen() {
   const colorScheme = useColorScheme();
@@ -168,8 +168,8 @@ export default function PostJobScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingHorizontal: 16 }}>
-        <ThemedView style={[styles.header, { marginTop: 24 }]}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ThemedView style={styles.header}>
           <ThemedText type="title">Post a New Job</ThemedText>
           <ThemedText style={styles.subtitle}>
             Fill out the form below to create your job posting
@@ -408,6 +408,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? 24 : 16,
   },
   header: {
     marginBottom: 24,

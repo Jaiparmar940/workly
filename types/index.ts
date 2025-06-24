@@ -151,4 +151,57 @@ export enum NotificationType {
   JOB_COMPLETED = 'Job Completed',
   PAYMENT_RECEIVED = 'Payment Received',
   SYSTEM = 'System'
+}
+
+export interface Message {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  jobId?: string; // Optional, for job-related messages
+  subject: string;
+  content: string;
+  type: MessageType;
+  isRead: boolean;
+  createdAt: Date;
+}
+
+export enum MessageType {
+  JOB_INTEREST = 'Job Interest',
+  APPLICATION_UPDATE = 'Application Update',
+  JOB_UPDATE = 'Job Update',
+  GENERAL = 'General'
+}
+
+// New conversation structure
+export interface Conversation {
+  id: string;
+  participants: string[]; // Array of user IDs
+  jobId?: string; // Optional, for job-related conversations
+  lastMessage?: {
+    content: string;
+    senderId: string;
+    createdAt: Date;
+  };
+  unreadCount: { [userId: string]: number }; // Track unread count per user
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ConversationMessage {
+  id: string;
+  senderId: string;
+  content: string;
+  type: MessageType;
+  isRead: boolean;
+  createdAt: Date;
+  deliveryStatus: MessageDeliveryStatus;
+  readBy: string[]; // Array of user IDs who have read this message
+}
+
+export enum MessageDeliveryStatus {
+  SENDING = 'sending',
+  SENT = 'sent',
+  DELIVERED = 'delivered',
+  READ = 'read',
+  FAILED = 'failed'
 } 

@@ -91,7 +91,7 @@ export const useAuth = () => {
       
       // Create user profile in Firestore
       console.log('useAuth: Creating user profile in Firestore...');
-      const userProfile = await FirebaseService.createUser({
+      const userProfile = await FirebaseService.createUser(result.user.uid, {
         ...userData,
       });
       console.log('useAuth: User profile created:', userProfile);

@@ -12,14 +12,9 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading) {
-      if (user) {
-        // User is authenticated, navigate to main app
-        router.replace('/(tabs)');
-      } else {
-        // User is not authenticated, navigate to login
-        router.replace('/login' as any);
-      }
+    if (!loading && !user) {
+      // User is not authenticated, navigate to login
+      router.replace('/login' as any);
     }
   }, [user, loading, router]);
 
@@ -27,5 +22,11 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     return <LoadingScreen message="Checking authentication..." />;
   }
 
-  return <>{children}</>;
+  // If user is authenticated, render children
+  if (user) {
+    return <>{children}</>;
+  }
+
+  // If not authenticated, show loading while redirecting
+  return <LoadingScreen message="Redirecting to login..." />;
 }; 

@@ -6,8 +6,9 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { FirebaseService } from '@/services/firebaseService';
 import { Job } from '@/types';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { FlatList, RefreshControl, SafeAreaView, StyleSheet, View } from 'react-native';
+import { FlatList, Platform, RefreshControl, SafeAreaView, StyleSheet, View } from 'react-native';
 
 export default function BrowseScreen() {
   const colorScheme = useColorScheme();
@@ -18,6 +19,7 @@ export default function BrowseScreen() {
   const [filters, setFilters] = useState<FilterOptions>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     loadJobs();
@@ -91,8 +93,8 @@ export default function BrowseScreen() {
   };
 
   const handleJobPress = (job: Job) => {
-    console.log('Job pressed:', job.title);
-    // In a real app, navigate to job details
+    // Navigate to job details
+    router.push(`/job/${job.id}` as any);
   };
 
   const handleSearch = (query: string) => {
@@ -121,7 +123,7 @@ export default function BrowseScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={{ paddingHorizontal: 16, marginTop: 24 }}>
+      <View style={styles.searchContainer}>
         <SearchAndFilter
           onSearch={handleSearch}
           onFilterChange={handleFilterChange}
@@ -133,7 +135,7 @@ export default function BrowseScreen() {
         data={filteredJobs}
         renderItem={renderJobItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
+        contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -152,10 +154,15 @@ export default function BrowseScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
   },
-  listContainer: {
-    paddingBottom: 100, // Account for tab bar
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? 24 : 16,
+    paddingBottom: 16,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 100,
   },
   resultsCount: {
     fontSize: 14,

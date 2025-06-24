@@ -7,7 +7,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { FirebaseService } from '@/services/firebaseService';
 import { Application, Job } from '@/types';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Platform, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
@@ -187,9 +187,9 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingHorizontal: 16 }}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Profile Header */}
-        <ThemedView style={[styles.profileHeader, { marginTop: 24 }]}>
+        <ThemedView style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             {userProfile.avatar ? (
               <Image source={{ uri: userProfile.avatar }} style={styles.avatar} />
@@ -201,95 +201,35 @@ export default function ProfileScreen() {
               </View>
             )}
           </View>
-          
           <View style={styles.profileInfo}>
-            <ThemedText type="title">{userProfile.name}</ThemedText>
-            <ThemedText style={styles.email}>{userProfile.email}</ThemedText>
-            <ThemedText style={styles.location}>
-              {userProfile.location.city}, {userProfile.location.state}
-            </ThemedText>
+            <ThemedText type="title" style={styles.profileName}>{userProfile.name}</ThemedText>
+            <ThemedText style={styles.profileEmail}>{userProfile.email}</ThemedText>
           </View>
+        </ThemedView>
 
+        {/* Action Buttons */}
+        <ThemedView style={styles.actionButtons}>
           <TouchableOpacity
-            style={[styles.editButton, { borderColor: colors.tint }]}
+            style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.tint }]}
             onPress={handleEditProfile}
           >
-            <ThemedText style={[styles.editButtonText, { color: colors.tint }]}>
-              Edit
-            </ThemedText>
+            <ThemedText style={[styles.actionButtonText, { color: colors.tint }]}>Edit Profile</ThemedText>
           </TouchableOpacity>
-
           <TouchableOpacity
-            style={[styles.refreshButton, { borderColor: colors.tint }]}
-            onPress={handleRefresh}
+            style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.tint }]}
+            onPress={handleSettings}
           >
-            <ThemedText style={[styles.refreshButtonText, { color: colors.tint }]}>
-              Refresh
-            </ThemedText>
+            <ThemedText style={[styles.actionButtonText, { color: colors.tint }]}>Settings</ThemedText>
           </TouchableOpacity>
         </ThemedView>
 
-        {/* Stats */}
-        <ThemedView style={styles.statsContainer}>
-          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
-            <ThemedText style={styles.statNumber}>{userProfile.rating}</ThemedText>
-            <ThemedText style={styles.statLabel}>Rating</ThemedText>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
-            <ThemedText style={styles.statNumber}>{userProfile.completedJobs}</ThemedText>
-            <ThemedText style={styles.statLabel}>Completed</ThemedText>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
-            <ThemedText style={styles.statNumber}>{postedJobs.length}</ThemedText>
-            <ThemedText style={styles.statLabel}>Posted</ThemedText>
-          </View>
-        </ThemedView>
-
-        {/* Skills */}
-        <ThemedView style={styles.section}>
-          <ThemedText type="subtitle">Skills</ThemedText>
-          <View style={styles.skillsContainer}>
-            {userProfile.skills.map((skill, index) => (
-              <View key={index} style={[styles.skillTag, { backgroundColor: colors.tint + '20' }]}>
-                <ThemedText style={[styles.skillText, { color: colors.tint }]}>
-                  {skill}
-                </ThemedText>
-              </View>
-            ))}
-          </View>
-        </ThemedView>
-
-        {/* Experience */}
-        <ThemedView style={styles.section}>
-          <ThemedText type="subtitle">Experience</ThemedText>
-          <ThemedText style={styles.experienceText}>{userProfile.experience}</ThemedText>
-        </ThemedView>
-
-        {/* Interests */}
-        <ThemedView style={styles.section}>
-          <ThemedText type="subtitle">Interests</ThemedText>
-          <View style={styles.interestsContainer}>
-            {userProfile.interests.map((interest, index) => (
-              <View key={index} style={[styles.interestTag, { backgroundColor: colors.tint + '20' }]}>
-                <ThemedText style={[styles.interestText, { color: colors.tint }]}>
-                  {interest}
-                </ThemedText>
-              </View>
-            ))}
-          </View>
-        </ThemedView>
-
-        {/* Tabs */}
-        <ThemedView style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              { backgroundColor: '#0a7ea4', borderColor: '#0a7ea4' } // Always blue
-            ]}
+        {/* Tab Buttons */}
+        <ThemedView style={styles.tabContainer}>
+          <TabButton
+            title="Posted Jobs"
+            isActive={activeTab === 'posted'}
             onPress={() => setActiveTab('posted')}
-          >
-            <ThemedText style={[styles.tabButtonText, { color: 'white' }]}>Posted Jobs</ThemedText>
-          </TouchableOpacity>
+          />
           <TabButton
             title="Applied Jobs"
             isActive={activeTab === 'applied'}
@@ -299,65 +239,65 @@ export default function ProfileScreen() {
 
         {/* Content based on active tab */}
         {activeTab === 'posted' ? (
-          <ThemedView style={styles.jobsContainer}>
-            {postedJobs.length === 0 ? (
-              <ThemedText style={styles.emptyText}>No jobs posted yet</ThemedText>
-            ) : (
+          <ThemedView style={styles.contentSection}>
+            {postedJobs.length > 0 ? (
               postedJobs.map((job) => (
                 <JobCard
                   key={job.id}
                   job={job}
-                  onPress={() => handleJobPress(job)}
+                  onPress={handleJobPress}
                 />
               ))
+            ) : (
+              <ThemedView style={styles.emptyState}>
+                <ThemedText type="subtitle">No posted jobs yet</ThemedText>
+                <ThemedText style={styles.emptyStateText}>
+                  Start by posting your first job opportunity.
+                </ThemedText>
+              </ThemedView>
             )}
           </ThemedView>
         ) : (
-          <ThemedView style={styles.jobsContainer}>
-            {applications.length === 0 ? (
-              <ThemedText style={styles.emptyText}>No applications yet</ThemedText>
-            ) : (
+          <ThemedView style={styles.contentSection}>
+            {applications.length > 0 ? (
               applications.map((application) => {
                 const job = applicationJobs[application.jobId];
-                return job ? (
+                if (!job) return null;
+                
+                return (
                   <JobCard
                     key={application.id}
                     job={job}
-                    onPress={() => handleJobPress(job)}
+                    onPress={handleJobPress}
                   />
-                ) : null;
+                );
               })
+            ) : (
+              <ThemedView style={styles.emptyState}>
+                <ThemedText type="subtitle">No applications yet</ThemedText>
+                <ThemedText style={styles.emptyStateText}>
+                  Start browsing jobs and apply to opportunities that interest you.
+                </ThemedText>
+              </ThemedView>
             )}
           </ThemedView>
         )}
 
-        {/* Logout Button */}
-        <TouchableOpacity
-          style={[
-            styles.logoutButton,
-            {
-              backgroundColor: colorScheme === 'dark' ? 'black' : 'white',
-              borderColor: '#dc3545',
-              borderWidth: 1,
-              marginTop: 20,
-              marginBottom: 8,
-            },
-          ]}
-          onPress={handleLogout}
-        >
-          <ThemedText style={[styles.logoutButtonText, { color: '#dc3545' }]}>Logout</ThemedText>
-        </TouchableOpacity>
-
-        {/* Delete Account Button */}
-        <TouchableOpacity
-          style={[
-            styles.deleteAccountButton,
-            { backgroundColor: '#dc3545', marginTop: 0, marginBottom: 20 } // less space above, more below
-          ]}
-          onPress={handleDeleteAccount}
-        >
-          <ThemedText style={styles.deleteAccountButtonText}>Delete Account</ThemedText>
-        </TouchableOpacity>
+        {/* Account Actions */}
+        <ThemedView style={styles.accountActions}>
+          <TouchableOpacity
+            style={[styles.logoutButton, { backgroundColor: colors.background, borderColor: colors.tint }]}
+            onPress={handleLogout}
+          >
+            <ThemedText style={[styles.logoutButtonText, { color: colors.tint }]}>Logout</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.deleteButton, { borderColor: '#ff4444' }]}
+            onPress={handleDeleteAccount}
+          >
+            <ThemedText style={[styles.deleteButtonText, { color: '#ff4444' }]}>Delete Account</ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
       </ScrollView>
     </SafeAreaView>
   );
@@ -366,7 +306,13 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: 16,
+    paddingTop: Platform.OS === 'android' ? 24 : 16,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -385,8 +331,8 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarText: {
     fontSize: 32,
@@ -396,146 +342,86 @@ const styles = StyleSheet.create({
   profileInfo: {
     flex: 1,
   },
-  email: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginTop: 4,
-  },
-  location: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginTop: 2,
-  },
-  editButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  editButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  refreshButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  refreshButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  statCard: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  statNumber: {
+  profileName: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 4,
   },
-  statLabel: {
-    fontSize: 12,
+  profileEmail: {
+    fontSize: 16,
     opacity: 0.7,
-    textAlign: 'center',
+    marginBottom: 8,
   },
-  section: {
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
     marginBottom: 24,
   },
-  skillsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
+  actionButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
   },
-  skillTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  skillText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  experienceText: {
+  actionButtonText: {
     fontSize: 16,
-    lineHeight: 24,
-    marginTop: 8,
+    fontWeight: '600',
   },
-  interestsContainer: {
+  tabContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
-  },
-  interestTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  interestText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
+    gap: 12,
+    marginBottom: 24,
   },
   tabButton: {
     flex: 1,
     paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
   },
   tabButtonText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
   },
-  jobsContainer: {
-    marginBottom: 16,
+  contentSection: {
+    marginBottom: 24,
   },
-  emptyText: {
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
     textAlign: 'center',
     marginTop: 8,
     opacity: 0.7,
   },
-  deleteAccountButton: {
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  deleteAccountButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+  accountActions: {
+    gap: 12,
+    marginBottom: 32,
   },
   logoutButton: {
-    paddingVertical: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
-    marginTop: 20,
   },
   logoutButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: 'white',
   },
-  scrollView: {
-    flex: 1,
+  deleteButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 }); 

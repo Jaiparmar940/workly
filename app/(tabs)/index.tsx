@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { RefreshControl, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform, RefreshControl, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { JobCard } from '@/components/JobCard';
 import { ThemedText } from '@/components/ThemedText';
@@ -50,8 +50,8 @@ export default function HomeScreen() {
   };
 
   const handleJobPress = (job: Job) => {
-    // Navigate to job details - for now just show an alert
-    console.log('Job pressed:', job.title);
+    // Navigate to job details
+    router.push(`/job/${job.id}` as any);
   };
 
   const handleViewAllJobs = () => {
@@ -96,6 +96,7 @@ export default function HomeScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView 
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -202,7 +203,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     padding: 16,
+    paddingTop: Platform.OS === 'android' ? 24 : 16,
   },
   header: {
     marginBottom: 24,
