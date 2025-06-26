@@ -1,24 +1,25 @@
 import { Captcha } from '@/components/Captcha';
 import { OnboardingComplete } from '@/components/OnboardingComplete';
+import SkillDiscovery from '@/components/SkillDiscovery';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useRateLimit } from '@/hooks/useRateLimit';
-import { User } from '@/types';
+import { User, UserIntent } from '@/types';
 import { createBotDetector } from '@/utils/botDetection';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function SignUpScreen() {
@@ -36,9 +37,13 @@ export default function SignUpScreen() {
   const botDetector = useRef(createBotDetector());
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const [formStartTime] = useState(Date.now());
-  const [userIntent, setUserIntent] = useState<null | 'post' | 'find' | 'both'>(null);
+  const [userIntent, setUserIntent] = useState<null | UserIntent>(null);
   const [showIntentStep, setShowIntentStep] = useState(false);
+  const [showSkillDiscovery, setShowSkillDiscovery] = useState(false);
   const [showFinalScreen, setShowFinalScreen] = useState(false);
+  const [discoveredSkills, setDiscoveredSkills] = useState<string[]>([]);
+  const [discoveredExperience, setDiscoveredExperience] = useState('');
+  const [discoveredInterests, setDiscoveredInterests] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -138,17 +143,28 @@ export default function SignUpScreen() {
   };
 
   // Handler for intent selection
-  const handleIntentSelect = async (intent: 'post' | 'find' | 'both') => {
+  const handleIntentSelect = async (intent: UserIntent) => {
     setUserIntent(intent);
+    
+    if (intent === UserIntent.INDIVIDUAL_LOOKING_FOR_WORK) {
+      // Show skill discovery for individuals looking for work
+      setShowSkillDiscovery(true);
+      return;
+    }
     
     try {
       console.log('Starting signup process...');
+      
+      // Determine account type and worker profile completion based on intent
+      const isBusinessAccount = intent === UserIntent.BUSINESS_LOOKING_FOR_WORK;
+      const needsWorkerProfile = intent === UserIntent.BUSINESS_LOOKING_FOR_WORK;
+      
       const userData: Omit<User, 'id' | 'createdAt'> = {
         name: formData.name,
         email: formData.email,
-        skills: intent === 'post' ? [] : [], // Empty skills for post-only users
-        experience: intent === 'post' ? 'No experience specified' : 'No experience specified',
-        interests: intent === 'post' ? [] : [], // Empty interests for post-only users
+        skills: needsWorkerProfile ? [] : [], // Empty skills for service-only users
+        experience: needsWorkerProfile ? 'No experience specified' : 'No experience specified',
+        interests: needsWorkerProfile ? [] : [], // Empty interests for service-only users
         rating: 0,
         completedJobs: 0,
         location: {
@@ -156,6 +172,8 @@ export default function SignUpScreen() {
           state: formData.state || 'Unknown',
           zipCode: formData.zipCode || '00000',
         },
+        accountType: isBusinessAccount ? 'business' : 'personal',
+        workerProfileComplete: !needsWorkerProfile, // Complete if they don't need worker profile
       };
 
       // Only add phone if it has a value
@@ -167,21 +185,173 @@ export default function SignUpScreen() {
       const result = await signUp(formData.email, formData.password, userData);
       console.log('Signup successful:', result);
       
-      if (intent === 'post') {
+      if (intent === UserIntent.INDIVIDUAL_NEEDING_SERVICES) {
         setShowFinalScreen(true);
+      } else if (intent === UserIntent.BUSINESS_LOOKING_FOR_WORK) {
+        // For business owners looking for work, go to business onboarding
+        router.replace('/business-onboarding' as any);
       } else {
-        // For 'find' or 'both', continue to onboarding
+        // For individual users looking for work, continue to regular onboarding
         router.replace('/onboarding' as any);
       }
     } catch (error: any) {
       console.error('Signup error:', error);
-      // Show the actual error message to the user
-      const errorMessage = error.message || 'Failed to create account. Please try again.';
-      Alert.alert('Signup Failed', errorMessage);
+      
+      // Check if the error is due to an existing account
+      const errorMessage = error.message || '';
+      const isExistingAccount = errorMessage.includes('already in use') || 
+                               errorMessage.includes('already exists') ||
+                               errorMessage.includes('email-already-in-use') ||
+                               error.code === 'auth/email-already-in-use';
+      
+      if (isExistingAccount) {
+        Alert.alert(
+          'Account Already Exists',
+          'An account with this email already exists. Please log in instead.',
+          [
+            {
+              text: 'Go to Login',
+              onPress: () => router.replace('/login' as any)
+            }
+          ]
+        );
+      } else {
+        // Show the actual error message to the user for other errors
+        const displayMessage = errorMessage || 'Failed to create account. Please try again.';
+        Alert.alert('Signup Failed', displayMessage);
+      }
     }
   };
 
-  if (showFinalScreen && userIntent === 'post') {
+  // Handler for skill discovery completion
+  const handleSkillDiscoveryComplete = async (skills: string[], experience: string, interests: string[], availability: string) => {
+    setDiscoveredSkills(skills);
+    setDiscoveredExperience(experience);
+    setDiscoveredInterests(interests);
+    
+    try {
+      console.log('Starting signup process with discovered skills...');
+      
+      const userData: Omit<User, 'id' | 'createdAt'> = {
+        name: formData.name,
+        email: formData.email,
+        skills: skills,
+        experience: experience,
+        interests: interests,
+        rating: 0,
+        completedJobs: 0,
+        location: {
+          city: formData.city || 'Unknown',
+          state: formData.state || 'Unknown',
+          zipCode: formData.zipCode || '00000',
+        },
+        accountType: 'personal',
+        workerProfileComplete: true, // Mark as complete since we have skills
+      };
+
+      // Only add phone if it has a value
+      if (formData.phone && formData.phone.trim()) {
+        (userData as any).phone = formData.phone.trim();
+      }
+
+      console.log('User data prepared with skills:', userData);
+      const result = await signUp(formData.email, formData.password, userData);
+      console.log('Signup successful:', result);
+      
+      // Go to onboarding to complete additional profile details
+      router.replace('/onboarding' as any);
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      
+      // Check if the error is due to an existing account
+      const errorMessage = error.message || '';
+      const isExistingAccount = errorMessage.includes('already in use') || 
+                               errorMessage.includes('already exists') ||
+                               errorMessage.includes('email-already-in-use') ||
+                               error.code === 'auth/email-already-in-use';
+      
+      if (isExistingAccount) {
+        Alert.alert(
+          'Account Already Exists',
+          'An account with this email already exists. Please log in instead.',
+          [
+            {
+              text: 'Go to Login',
+              onPress: () => router.replace('/login' as any)
+            }
+          ]
+        );
+      } else {
+        // Show the actual error message to the user for other errors
+        const displayMessage = errorMessage || 'Failed to create account. Please try again.';
+        Alert.alert('Signup Failed', displayMessage);
+      }
+    }
+  };
+
+  // Handler for skill discovery skip
+  const handleSkillDiscoverySkip = async () => {
+    try {
+      console.log('Starting signup process without skills...');
+      
+      const userData: Omit<User, 'id' | 'createdAt'> = {
+        name: formData.name,
+        email: formData.email,
+        skills: [],
+        experience: 'No experience specified',
+        interests: [],
+        rating: 0,
+        completedJobs: 0,
+        location: {
+          city: formData.city || 'Unknown',
+          state: formData.state || 'Unknown',
+          zipCode: formData.zipCode || '00000',
+        },
+        accountType: 'personal',
+        workerProfileComplete: false, // Not complete since they skipped
+      };
+
+      // Only add phone if it has a value
+      if (formData.phone && formData.phone.trim()) {
+        (userData as any).phone = formData.phone.trim();
+      }
+
+      console.log('User data prepared without skills:', userData);
+      const result = await signUp(formData.email, formData.password, userData);
+      console.log('Signup successful:', result);
+      
+      // Go to onboarding to complete profile
+      router.replace('/onboarding' as any);
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      
+      // Check if the error is due to an existing account
+      const errorMessage = error.message || '';
+      const isExistingAccount = errorMessage.includes('already in use') || 
+                               errorMessage.includes('already exists') ||
+                               errorMessage.includes('email-already-in-use') ||
+                               error.code === 'auth/email-already-in-use';
+      
+      if (isExistingAccount) {
+        Alert.alert(
+          'Account Already Exists',
+          'An account with this email already exists. Please log in instead.',
+          [
+            {
+              text: 'Go to Login',
+              onPress: () => router.replace('/login' as any)
+            }
+          ]
+        );
+      } else {
+        // Show the actual error message to the user for other errors
+        const displayMessage = errorMessage || 'Failed to create account. Please try again.';
+        Alert.alert('Signup Failed', displayMessage);
+      }
+    }
+  };
+
+  if (showFinalScreen && userIntent === UserIntent.INDIVIDUAL_NEEDING_SERVICES) {
     return (
       <OnboardingComplete
         onComplete={() => router.replace('/(tabs)' as any)}
@@ -445,34 +615,43 @@ export default function SignUpScreen() {
         {showIntentStep && userIntent === null && (
           <ThemedView style={styles.intentContainer}>
             <ThemedText type="title" style={[styles.title, { marginBottom: 60 }]}>
-              How do you want to use Workly?
-            </ThemedText>
-            <ThemedText style={[styles.subtitle, { marginBottom: 20 }]}>
-              Choose one to continue:
+              Please describe your primary interest:
             </ThemedText>
             <TouchableOpacity
               style={[styles.intentButton, { backgroundColor: '#0a7ea4' }]}
-              onPress={() => handleIntentSelect('post')}
+              onPress={() => handleIntentSelect(UserIntent.INDIVIDUAL_LOOKING_FOR_WORK)}
             >
-              <ThemedText style={styles.intentButtonText}>Post Jobs</ThemedText>
+              <ThemedText style={styles.intentButtonText}>Individual looking for work</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.intentButton, { backgroundColor: '#0a7ea4' }]}
-              onPress={() => handleIntentSelect('find')}
+              onPress={() => handleIntentSelect(UserIntent.INDIVIDUAL_NEEDING_SERVICES)}
             >
-              <ThemedText style={styles.intentButtonText}>Find Work</ThemedText>
+              <ThemedText style={styles.intentButtonText}>Individual needing services</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.intentButton, { backgroundColor: '#0a7ea4' }]}
-              onPress={() => handleIntentSelect('both')}
+              onPress={() => handleIntentSelect(UserIntent.BUSINESS_LOOKING_FOR_WORK)}
             >
-              <ThemedText style={styles.intentButtonText}>Both</ThemedText>
+              <ThemedText style={styles.intentButtonText}>Business owner looking for work</ThemedText>
             </TouchableOpacity>
+            <ThemedText style={[styles.disclaimerText, { color: colors.tabIconDefault, marginTop: 20 }]}>
+              This can be changed at any time. You can still act as an employee or post jobs regardless of your selection.
+            </ThemedText>
           </ThemedView>
         )}
         {/* Main signup form only if userIntent is 'find' or 'both' and after intent step */}
         {/* Place additional onboarding steps here if needed */}
       </ScrollView>
+
+      {/* Skill Discovery Component */}
+      {showSkillDiscovery && (
+        <SkillDiscovery
+          onComplete={handleSkillDiscoveryComplete}
+          onSkip={handleSkillDiscoverySkip}
+          userName={formData.name}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -632,5 +811,10 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  disclaimerText: {
+    fontSize: 14,
+    textAlign: 'center',
   },
 }); 

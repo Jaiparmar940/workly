@@ -6,6 +6,7 @@ import { JobCard } from '@/components/JobCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { FirebaseService } from '@/services/firebaseService';
 import { Job, JobMatch } from '@/types';
@@ -14,27 +15,41 @@ export default function HomeScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const { user } = useAuthContext();
   
   const [jobMatches, setJobMatches] = useState<JobMatch[]>([]);
   const [recentJobs, setRecentJobs] = useState<Job[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Mock current user ID - in a real app this would come from authentication
-  const currentUserId = '2';
+  // Use the authenticated user ID instead of hardcoded value
+  const currentUserId = user?.uid || '';
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentUserId]);
 
   const loadData = async () => {
     try {
-      // Get job matches for current user
-      const matches = await FirebaseService.getJobMatchesByUserId(currentUserId);
-      setJobMatches(matches);
+      // Get job matches for current user (only if user is authenticated)
+      if (currentUserId) {
+        const matches = await FirebaseService.getJobMatchesByUserId(currentUserId);
+        setJobMatches(matches);
+      } else {
+        setJobMatches([]);
+      }
 
-      // Get recent jobs
+      // Get recent jobs (this should always work)
       const recent = await FirebaseService.getRecentJobs(5);
       setRecentJobs(recent);
+      console.log('Recent jobs loaded:', recent.length, recent);
+      
+      // If no recent jobs found, try to get all jobs as fallback
+      if (recent.length === 0) {
+        console.log('No recent jobs found, trying to get all jobs...');
+        const allJobs = await FirebaseService.getAllJobs();
+        console.log('All jobs found:', allJobs.length, allJobs);
+        setRecentJobs(allJobs.slice(0, 5)); // Take first 5
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       // Fallback to empty arrays if Firebase is not configured
@@ -127,6 +142,22 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </ThemedView>
 
+        {/* Stats */}
+        <ThemedView style={styles.statsContainer}>
+          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
+            <ThemedText style={styles.statNumber}>{jobMatches.length}</ThemedText>
+            <ThemedText style={styles.statLabel}>Job Matches</ThemedText>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
+            <ThemedText style={styles.statNumber}>{recentJobs.length}</ThemedText>
+            <ThemedText style={styles.statLabel}>New Jobs</ThemedText>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
+            <ThemedText style={styles.statNumber}>15</ThemedText>
+            <ThemedText style={styles.statLabel}>Categories</ThemedText>
+          </View>
+        </ThemedView>
+
         {/* Job Matches */}
         {jobMatches.length > 0 && (
           <ThemedView style={styles.section}>
@@ -175,22 +206,6 @@ export default function HomeScreen() {
               onPress={handleJobPress}
             />
           ))}
-        </ThemedView>
-
-        {/* Stats */}
-        <ThemedView style={styles.statsContainer}>
-          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
-            <ThemedText style={styles.statNumber}>{jobMatches.length}</ThemedText>
-            <ThemedText style={styles.statLabel}>Job Matches</ThemedText>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
-            <ThemedText style={styles.statNumber}>{recentJobs.length}</ThemedText>
-            <ThemedText style={styles.statLabel}>New Jobs</ThemedText>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.background, borderColor: colors.tabIconDefault }]}>
-            <ThemedText style={styles.statNumber}>15</ThemedText>
-            <ThemedText style={styles.statLabel}>Categories</ThemedText>
-          </View>
         </ThemedView>
       </ScrollView>
     </SafeAreaView>

@@ -6,7 +6,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { FirebaseService } from '@/services/firebaseService';
 import { Application, Job } from '@/types';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, Platform, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -14,11 +14,17 @@ export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { user, userProfile, logout } = useAuthContext();
+  const router = useRouter();
   
   const [postedJobs, setPostedJobs] = useState<Job[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [activeTab, setActiveTab] = useState<'posted' | 'applied'>('posted');
   const [loading, setLoading] = useState(true);
+
+  // Debug logging
+  console.log('ProfileScreen - userProfile:', userProfile);
+  console.log('ProfileScreen - userProfile.id:', userProfile?.id);
+  console.log('ProfileScreen - userProfile.accountType:', userProfile?.accountType);
 
   useEffect(() => {
     if (user) {
@@ -62,7 +68,51 @@ export default function ProfileScreen() {
   };
 
   const handleEditProfile = () => {
-    Alert.alert('Edit Profile', 'Profile editing functionality would be implemented here.');
+    if (!userProfile) return;
+
+    // Determine which onboarding to navigate to based on account type
+    if (userProfile.accountType === 'business' && userProfile.businessProfile) {
+      // Navigate to business onboarding with pre-populated data
+      router.push({
+        pathname: '/business-onboarding',
+        params: {
+          editMode: 'true',
+          businessName: userProfile.businessProfile.businessName,
+          businessType: userProfile.businessProfile.businessType,
+          yearsInBusiness: userProfile.businessProfile.yearsInBusiness.toString(),
+          primaryServices: userProfile.businessProfile.primaryServices.join(','),
+          serviceAreas: userProfile.businessProfile.serviceAreas.join(','),
+          website: userProfile.businessProfile.website || '',
+          businessLicense: userProfile.businessProfile.businessLicense || '',
+          insuranceInfo: userProfile.businessProfile.insuranceInfo || '',
+          teamSize: userProfile.businessProfile.teamSize,
+          serviceRadius: userProfile.businessProfile.serviceRadius.toString(),
+          locationConstraints: userProfile.businessProfile.locationConstraints || '',
+          warrantyPolicy: userProfile.businessProfile.warrantyPolicy || '',
+          certifications: userProfile.businessProfile.certifications?.join(',') || '',
+          equipment: userProfile.businessProfile.equipment?.join(',') || '',
+          responseTime: userProfile.businessProfile.responseTime || '',
+          paymentTerms: userProfile.businessProfile.paymentTerms || '',
+        }
+      } as any);
+    } else {
+      // Navigate to personal onboarding with pre-populated data
+      router.push({
+        pathname: '/onboarding',
+        params: {
+          editMode: 'true',
+          name: userProfile.name,
+          email: userProfile.email,
+          phone: userProfile.phone || '',
+          skills: userProfile.skills.join(','),
+          experience: userProfile.experience || '',
+          interests: userProfile.interests?.join(',') || '',
+          city: userProfile.location?.city || '',
+          state: userProfile.location?.state || '',
+          zipCode: userProfile.location?.zipCode || '',
+        }
+      } as any);
+    }
   };
 
   const handleSettings = () => {
@@ -118,6 +168,30 @@ export default function ProfileScreen() {
             } catch (error) {
               console.error('Delete account error:', error);
               Alert.alert('Error', 'Failed to delete account. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handlePopulateJobs = async () => {
+    Alert.alert(
+      'Populate Sample Jobs',
+      'This will add 30 sample jobs to the database. This is useful for testing and demonstration purposes.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Populate Jobs', 
+          onPress: async () => {
+            try {
+              console.log('Starting to populate sample jobs...');
+              const jobIds = await FirebaseService.populateSampleJobs();
+              console.log('Sample jobs populated successfully:', jobIds);
+              Alert.alert('Success', `Successfully added ${jobIds.length} sample jobs to the database!`);
+            } catch (error) {
+              console.error('Error populating sample jobs:', error);
+              Alert.alert('Error', 'Failed to populate sample jobs. Please try again.');
             }
           }
         }
@@ -198,6 +272,15 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* Public Profile Button */}
+        <View style={{ marginTop: 24, marginBottom: 8 }}>
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: colors.tint, borderColor: colors.tint }]}
+            onPress={() => router.push(`/profile/${userProfile.id}` as any)}
+          >
+            <ThemedText style={[styles.actionButtonText, { color: 'white' }]}>View Public Profile</ThemedText>
+          </TouchableOpacity>
+        </View>
         {/* Profile Header */}
         <ThemedView style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
@@ -230,6 +313,26 @@ export default function ProfileScreen() {
             onPress={handleSettings}
           >
             <ThemedText style={[styles.actionButtonText, { color: colors.tint }]}>Settings</ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+
+        {/* Populate Sample Jobs Button */}
+        <ThemedView style={styles.populateJobsContainer}>
+          <TouchableOpacity
+            style={[styles.populateJobsButton, { backgroundColor: colors.background, borderColor: '#4CAF50' }]}
+            onPress={handlePopulateJobs}
+          >
+            <ThemedText style={[styles.populateJobsButtonText, { color: '#4CAF50' }]}>Populate Sample Jobs</ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+
+        {/* Test Conversational Onboarding Button */}
+        <ThemedView style={styles.populateJobsContainer}>
+          <TouchableOpacity
+            style={[styles.populateJobsButton, { backgroundColor: colors.background, borderColor: '#FF6B35' }]}
+            onPress={() => router.push('/(tabs)/conversational-onboarding' as any)}
+          >
+            <ThemedText style={[styles.populateJobsButtonText, { color: '#FF6B35' }]}>Test Conversational Onboarding</ThemedText>
           </TouchableOpacity>
         </ThemedView>
 
@@ -431,6 +534,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   deleteButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  populateJobsContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  populateJobsButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  populateJobsButtonText: {
     fontSize: 16,
     fontWeight: '600',
   },

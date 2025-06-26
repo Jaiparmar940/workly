@@ -99,6 +99,8 @@ export default function ConversationScreen() {
         rating: 0,
         completedJobs: 0,
         location: { city: '', state: '', zipCode: '' },
+        accountType: 'personal',
+        workerProfileComplete: false,
         createdAt: new Date()
       };
       setOtherUser(fallbackUser);
@@ -165,6 +167,8 @@ export default function ConversationScreen() {
         rating: 0,
         completedJobs: 0,
         location: { city: '', state: '', zipCode: '' },
+        accountType: 'personal',
+        workerProfileComplete: false,
         createdAt: new Date()
       };
       setOtherUser(fallbackUser);
@@ -487,11 +491,11 @@ export default function ConversationScreen() {
           headerBackTitle: 'Back'
         }} 
       />
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <KeyboardAvoidingView 
           style={styles.keyboardAvoidingView}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
           {renderHeader()}
           
@@ -538,7 +542,7 @@ export default function ConversationScreen() {
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
     </>
   );
 }
@@ -546,6 +550,7 @@ export default function ConversationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 0 : 0,
   },
   keyboardAvoidingView: {
     flex: 1,

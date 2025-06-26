@@ -6,7 +6,20 @@ export interface User {
   avatar?: string | null;
   skills: string[];
   experience: string;
+  experiences?: Experience[]; // Multiple experiences
+  resume?: {
+    url: string;
+    fileName: string;
+    uploadedAt: Date;
+  };
+  experienceMethod?: 'resume' | 'manual';
   interests: string[];
+  workPreferences?: {
+    jobTypes: string[];
+    remoteWork: boolean;
+    travelWillingness: boolean;
+    availability: string;
+  };
   rating: number;
   completedJobs: number;
   location: {
@@ -14,7 +27,47 @@ export interface User {
     state: string;
     zipCode: string;
   };
+  accountType: 'business' | 'personal';
+  workerProfileComplete: boolean;
+  businessProfile?: {
+    businessName: string;
+    businessType: string;
+    yearsInBusiness: number;
+    primaryServices: string[];
+    serviceAreas: string[];
+    website?: string;
+    businessLicense?: string;
+    insuranceInfo?: string;
+    teamSize: string;
+    serviceRadius: number;
+    locationConstraints?: string;
+    warrantyPolicy?: string;
+    certifications?: string[];
+    equipment?: string[];
+    responseTime?: string;
+    paymentTerms?: string;
+    completedSteps: number;
+    isComplete: boolean;
+    logo?: string;
+    rating?: number;
+    reviewCount?: number;
+    completedJobs?: number;
+    responseRate?: number;
+    onTimeDelivery?: number;
+  };
   createdAt: Date;
+  updatedAt?: Date;
+}
+
+export interface Experience {
+  id: string;
+  title: string;
+  description: string;
+  yearsOfExperience: number;
+  company?: string;
+  startDate?: Date;
+  endDate?: Date;
+  isCurrent?: boolean;
 }
 
 export interface Job {
@@ -204,4 +257,10 @@ export enum MessageDeliveryStatus {
   DELIVERED = 'delivered',
   READ = 'read',
   FAILED = 'failed'
+}
+
+export enum UserIntent {
+  INDIVIDUAL_LOOKING_FOR_WORK = 'individual_looking_for_work',
+  INDIVIDUAL_NEEDING_SERVICES = 'individual_needing_services',
+  BUSINESS_LOOKING_FOR_WORK = 'business_looking_for_work'
 } 

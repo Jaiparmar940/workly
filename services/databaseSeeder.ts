@@ -51,7 +51,9 @@ export class DatabaseSeeder {
           city: 'San Francisco',
           state: 'CA',
           zipCode: '94102'
-        }
+        },
+        accountType: 'personal' as const,
+        workerProfileComplete: true
       },
       {
         name: 'Sarah Johnson',
@@ -67,7 +69,9 @@ export class DatabaseSeeder {
           city: 'New York',
           state: 'NY',
           zipCode: '10001'
-        }
+        },
+        accountType: 'personal' as const,
+        workerProfileComplete: true
       },
       {
         name: 'Mike Chen',
@@ -83,13 +87,17 @@ export class DatabaseSeeder {
           city: 'Austin',
           state: 'TX',
           zipCode: '73301'
-        }
+        },
+        accountType: 'personal' as const,
+        workerProfileComplete: true
       }
     ];
 
     const createdUsers = [];
     for (const userData of users) {
-      const user = await FirebaseService.createUser(userData);
+      // Generate a unique ID for each user
+      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const user = await FirebaseService.createUser(userId, userData);
       createdUsers.push(user);
     }
 

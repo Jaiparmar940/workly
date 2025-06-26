@@ -4,9 +4,9 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { FirebaseService } from '@/services/firebaseService';
 import { Conversation, Message, User } from '@/types';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { FlatList, Image, Platform, SafeAreaView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Image, Platform, SafeAreaView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface ConversationPreview {
   id: string; // Conversation ID
@@ -26,6 +26,7 @@ export default function MessagesScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const { user } = useAuthContext();
   const router = useRouter();
+  const params = useLocalSearchParams();
   
   const [conversations, setConversations] = useState<ConversationPreview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +36,13 @@ export default function MessagesScreen() {
       loadConversations();
     }
   }, [user]);
+
+  // Handle new message creation from profile
+  useEffect(() => {
+    if (params.newMessage === 'true' && params.recipientId && user) {
+      handleNewMessage();
+    }
+  }, [params, user]);
 
   // Refresh conversations when screen comes into focus (e.g., returning from conversation)
   useFocusEffect(
@@ -263,6 +271,43 @@ export default function MessagesScreen() {
       </ThemedText>
     </View>
   );
+
+  const handleNewMessage = async () => {
+    if (!user) return;
+    
+    try {
+      const recipientId = params.recipientId as string;
+      const recipientName = params.recipientName as string;
+      const subject = params.subject as string;
+
+      // Check if conversation already exists
+      const existingConversation = conversations.find(conv => 
+        conv.otherUser.id === recipientId
+      );
+
+      if (existingConversation) {
+        // Navigate to existing conversation
+        router.push(`/conversation/${existingConversation.id}` as any);
+      } else {
+        // Create new conversation
+        const participants = [user.uid, recipientId];
+        const newConversation = await FirebaseService.createConversation(
+          participants,
+          undefined // No job ID for profile-initiated messages
+        );
+
+        if (newConversation) {
+          // Navigate to the new conversation
+          router.push(`/conversation/${newConversation.id}` as any);
+        } else {
+          Alert.alert('Error', 'Failed to create conversation');
+        }
+      }
+    } catch (error) {
+      console.error('Error creating new message:', error);
+      Alert.alert('Error', 'Failed to create message');
+    }
+  };
 
   if (!user) {
     return (

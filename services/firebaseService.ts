@@ -76,22 +76,37 @@ export class FirebaseService {
     
     if (docSnap.exists()) {
       const data = docSnap.data();
-      return {
+      const userData = {
         id: docSnap.id,
         ...data,
-        createdAt: convertTimestamp(data.createdAt)
+        createdAt: convertTimestamp(data.createdAt),
+        updatedAt: data.updatedAt ? convertTimestamp(data.updatedAt) : undefined
       } as User;
+      
+      // Convert resume uploadedAt if it exists
+      if (userData.resume && typeof userData.resume.uploadedAt === 'string') {
+        userData.resume.uploadedAt = new Date(userData.resume.uploadedAt);
+      }
+      
+      return userData;
     }
     
     return null;
   }
 
   static async updateUser(userId: string, updates: Partial<User>): Promise<void> {
-    const docRef = doc(db, COLLECTIONS.USERS, userId);
-    await updateDoc(docRef, {
-      ...updates,
-      updatedAt: serverTimestamp()
-    });
+    try {
+      console.log('FirebaseService: Updating user', userId, 'with data:', updates);
+      const docRef = doc(db, COLLECTIONS.USERS, userId);
+      await updateDoc(docRef, {
+        ...updates,
+        updatedAt: serverTimestamp()
+      });
+      console.log('FirebaseService: User updated successfully');
+    } catch (error) {
+      console.error('FirebaseService: Error updating user:', error);
+      throw error;
+    }
   }
 
   static async deleteUser(userId: string): Promise<void> {
@@ -104,7 +119,8 @@ export class FirebaseService {
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      createdAt: convertTimestamp(doc.data().createdAt)
+      createdAt: convertTimestamp(doc.data().createdAt),
+      updatedAt: doc.data().updatedAt ? convertTimestamp(doc.data().updatedAt) : undefined
     })) as User[];
   }
 
@@ -935,5 +951,227 @@ I look forward to hearing from you!`,
     });
     
     await Promise.all(updatePromises);
+  }
+
+  // ===== SAMPLE DATA POPULATION =====
+  
+  static async populateSampleJobs(): Promise<string[]> {
+    console.log('Starting to populate sample jobs...');
+    
+    try {
+      // First, create some sample users if they don't exist
+      const sampleUsers = [
+        {
+          id: 'sample_user_1',
+          name: 'John Smith',
+          email: 'john.smith@example.com',
+          phone: '+1-555-0101',
+          accountType: 'personal' as const,
+          skills: ['React', 'JavaScript', 'Web Development'],
+          experience: '5+ years',
+          location: { city: 'San Francisco', state: 'CA', zipCode: '94102' },
+          avatar: null,
+          bio: 'Experienced web developer with expertise in modern frameworks.',
+          interests: ['Technology', 'Open Source', 'Travel'],
+          rating: 4.8,
+          completedJobs: 12,
+          workerProfileComplete: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: 'sample_user_2',
+          name: 'Sarah Johnson',
+          email: 'sarah.johnson@example.com',
+          phone: '+1-555-0102',
+          accountType: 'personal' as const,
+          skills: ['Graphic Design', 'UI/UX', 'Adobe Creative Suite'],
+          experience: '3+ years',
+          location: { city: 'Austin', state: 'TX', zipCode: '73301' },
+          avatar: null,
+          bio: 'Creative designer passionate about user experience and visual storytelling.',
+          interests: ['Art', 'Design', 'Photography'],
+          rating: 4.9,
+          completedJobs: 8,
+          workerProfileComplete: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: 'sample_user_3',
+          name: 'Mike Chen',
+          email: 'mike.chen@example.com',
+          phone: '+1-555-0103',
+          accountType: 'personal' as const,
+          skills: ['Content Writing', 'SEO', 'Digital Marketing'],
+          experience: '4+ years',
+          location: { city: 'New York', state: 'NY', zipCode: '10001' },
+          avatar: null,
+          bio: 'Content strategist and digital marketer with a passion for storytelling.',
+          interests: ['Writing', 'Marketing', 'Technology'],
+          rating: 4.7,
+          completedJobs: 15,
+          workerProfileComplete: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: 'sample_user_4',
+          name: 'Emily Davis',
+          email: 'emily.davis@example.com',
+          phone: '+1-555-0104',
+          accountType: 'personal' as const,
+          skills: ['Mobile Development', 'iOS', 'React Native'],
+          experience: '6+ years',
+          location: { city: 'Seattle', state: 'WA', zipCode: '98101' },
+          avatar: null,
+          bio: 'Mobile app developer with expertise in iOS and cross-platform development.',
+          interests: ['Mobile Tech', 'Fitness', 'Coffee'],
+          rating: 4.6,
+          completedJobs: 10,
+          workerProfileComplete: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: 'sample_user_5',
+          name: 'David Wilson',
+          email: 'david.wilson@example.com',
+          phone: '+1-555-0105',
+          accountType: 'personal' as const,
+          skills: ['Data Analysis', 'Python', 'SQL'],
+          experience: '7+ years',
+          location: { city: 'Boston', state: 'MA', zipCode: '02101' },
+          avatar: null,
+          bio: 'Data scientist and analyst with expertise in business intelligence.',
+          interests: ['Data Science', 'Machine Learning', 'Hiking'],
+          rating: 4.5,
+          completedJobs: 20,
+          workerProfileComplete: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ];
+
+      // Create sample users
+      const userIds: string[] = [];
+      for (const userData of sampleUsers) {
+        try {
+          await this.createUser(userData.id, userData);
+          userIds.push(userData.id);
+          console.log(`Created sample user: ${userData.name}`);
+        } catch (error) {
+          // User might already exist, try to use existing ID
+          console.log(`User ${userData.name} might already exist, using ID: ${userData.id}`);
+          userIds.push(userData.id);
+        }
+      }
+
+      // Sample user IDs - using the created sample users
+      const SAMPLE_USER_IDS = userIds;
+
+      // Sample jobs
+      const SAMPLE_JOBS = [
+        // Web Development Jobs
+        {
+          title: "React Developer for E-commerce Platform",
+          description: "Looking for an experienced React developer to help build a modern e-commerce platform. Must have experience with React hooks, Redux, and API integration. The project involves creating a responsive shopping cart, product catalog, and user authentication system.",
+          category: "Technology" as any,
+          type: "Contract" as any,
+          complexity: "Intermediate" as any,
+          location: {
+            city: "San Francisco",
+            state: "CA", 
+            zipCode: "94102",
+            isRemote: true
+          },
+          budget: { 
+            min: 2500, 
+            max: 5000,
+            currency: "USD"
+          },
+          duration: {
+            startDate: new Date(),
+            endDate: new Date(Date.now() + 4 * 7 * 24 * 60 * 60 * 1000) // 4 weeks from now
+          },
+          skills: ["React", "JavaScript", "Redux", "API Integration", "E-commerce"],
+          requirements: ["3+ years React experience", "E-commerce background", "API integration skills"],
+          postedBy: SAMPLE_USER_IDS[0],
+          status: JobStatus.OPEN,
+          applicants: []
+        },
+        {
+          title: "WordPress Website Redesign",
+          description: "Need a professional WordPress developer to redesign our company website. Current site is outdated and needs modern design, improved navigation, and mobile responsiveness. Should include custom theme development and SEO optimization.",
+          category: "Technology" as any,
+          type: "One-time" as any,
+          complexity: "Beginner" as any,
+          location: {
+            city: "Austin",
+            state: "TX",
+            zipCode: "73301", 
+            isRemote: true
+          },
+          budget: { 
+            min: 800, 
+            max: 2000,
+            currency: "USD"
+          },
+          duration: {
+            startDate: new Date(),
+            endDate: new Date(Date.now() + 3 * 7 * 24 * 60 * 60 * 1000) // 3 weeks from now
+          },
+          skills: ["WordPress", "PHP", "CSS", "SEO", "Responsive Design"],
+          requirements: ["WordPress development experience", "Theme customization", "SEO knowledge"],
+          postedBy: SAMPLE_USER_IDS[1],
+          status: JobStatus.OPEN,
+          applicants: []
+        },
+        {
+          title: "Full-Stack Developer for SaaS Application",
+          description: "Seeking a full-stack developer to build a SaaS application from scratch. The app will handle user management, subscription billing, and data analytics. Tech stack should include Node.js, React, and PostgreSQL.",
+          category: "Technology" as any,
+          type: "Contract" as any,
+          complexity: "Expert" as any,
+          location: {
+            city: "New York",
+            state: "NY",
+            zipCode: "10001",
+            isRemote: true
+          },
+          budget: { 
+            min: 8000, 
+            max: 15000,
+            currency: "USD"
+          },
+          duration: {
+            startDate: new Date(),
+            endDate: new Date(Date.now() + 12 * 7 * 24 * 60 * 60 * 1000) // 12 weeks from now
+          },
+          skills: ["Node.js", "React", "PostgreSQL", "SaaS", "Billing Integration"],
+          requirements: ["5+ years full-stack experience", "SaaS development background", "Payment integration experience"],
+          postedBy: SAMPLE_USER_IDS[2],
+          status: JobStatus.OPEN,
+          applicants: []
+        }
+      ];
+
+      const jobIds: string[] = [];
+      
+      for (const jobData of SAMPLE_JOBS) {
+        const job = await this.createJob(jobData);
+        jobIds.push(job.id);
+        console.log(`Job added successfully: ${jobData.title} (ID: ${job.id})`);
+        
+        // Add a small delay to avoid overwhelming the database
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      console.log(`\n✅ Successfully added ${jobIds.length} sample jobs!`);
+      return jobIds;
+    } catch (error) {
+      console.error('Error populating sample jobs:', error);
+      throw error;
+    }
   }
 } 
