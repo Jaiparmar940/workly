@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Platform, RefreshControl, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
+import AIJobRecommendations from '@/components/AIJobRecommendations';
 import { JobCard } from '@/components/JobCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -158,11 +159,22 @@ export default function HomeScreen() {
           </View>
         </ThemedView>
 
-        {/* Job Matches */}
-        {jobMatches.length > 0 && (
+        {/* AI-Powered Recommendations */}
+        {currentUserId && (
+          <AIJobRecommendations 
+            userId={currentUserId}
+            showQuickMoney={true}
+            showUrgentJobs={true}
+            showHighPaying={true}
+            maxRecommendations={3}
+          />
+        )}
+
+        {/* Legacy Job Matches (fallback) */}
+        {(!currentUserId || jobMatches.length === 0) && (
           <ThemedView style={styles.section}>
             <View style={styles.sectionHeader}>
-              <ThemedText type="subtitle">Recommended for You</ThemedText>
+              <ThemedText type="subtitle">Recent Jobs</ThemedText>
               <TouchableOpacity onPress={handleViewAllJobs}>
                 <ThemedText style={[styles.seeAllText, { color: colors.tint }]}>
                   See All
@@ -170,42 +182,30 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {jobMatches.slice(0, 3).map((match) => {
-                const job = matchJobs[match.jobId];
-                if (!job) return null;
-                
-                return (
-                  <View key={match.jobId} style={styles.matchCard}>
-                    <JobCard
-                      job={job}
-                      onPress={handleJobPress}
-                      showMatchScore={true}
-                      matchScore={match.matchScore}
-                    />
-                  </View>
-                );
-              })}
+              {recentJobs.slice(0, 3).map((job) => (
+                <View key={job.id} style={styles.matchCard}>
+                  <JobCard
+                    job={job}
+                    onPress={handleJobPress}
+                  />
+                </View>
+              ))}
             </ScrollView>
           </ThemedView>
         )}
 
-        {/* Recent Jobs */}
-        <ThemedView style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <ThemedText type="subtitle">Recent Jobs</ThemedText>
-            <TouchableOpacity onPress={handleViewAllJobs}>
-              <ThemedText style={[styles.seeAllText, { color: colors.tint }]}>
-                See All
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
-          {recentJobs.map((job) => (
-            <JobCard
-              key={job.id}
-              job={job}
-              onPress={handleJobPress}
-            />
-          ))}
+        {/* Call to Action */}
+        <ThemedView style={styles.ctaSection}>
+          <ThemedText type="subtitle">Ready to earn money?</ThemedText>
+          <ThemedText style={styles.ctaText}>
+            Complete your profile to get personalized job recommendations and start earning today.
+          </ThemedText>
+          <TouchableOpacity
+            style={[styles.ctaButton, { backgroundColor: colors.tint }]}
+            onPress={() => router.push('/onboarding' as any)}
+          >
+            <ThemedText style={styles.ctaButtonText}>Get Started</ThemedText>
+          </TouchableOpacity>
         </ThemedView>
       </ScrollView>
     </SafeAreaView>
@@ -220,21 +220,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingTop: Platform.OS === 'android' ? 24 : 16,
+    paddingBottom: 100,
   },
   header: {
-    marginBottom: 24,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? 24 : 16,
+    paddingBottom: 16,
   },
   subtitle: {
     fontSize: 16,
-    marginTop: 4,
+    marginTop: 8,
     opacity: 0.7,
   },
   quickActions: {
     flexDirection: 'row',
-    gap: 12,
+    paddingHorizontal: 16,
     marginBottom: 24,
+    gap: 12,
   },
   actionButton: {
     flex: 1,
@@ -249,32 +251,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'white',
   },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  seeAllText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  matchCard: {
-    width: 300,
-    marginRight: 12,
-  },
   statsContainer: {
     flexDirection: 'row',
-    gap: 12,
+    paddingHorizontal: 16,
     marginBottom: 24,
+    gap: 12,
   },
   statCard: {
     flex: 1,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
   },
@@ -287,5 +273,49 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.7,
     textAlign: 'center',
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  matchCard: {
+    width: 280,
+    marginRight: 16,
+    marginLeft: 16,
+  },
+  ctaSection: {
+    marginHorizontal: 16,
+    marginTop: 24,
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  ctaText: {
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+    opacity: 0.7,
+    lineHeight: 20,
+  },
+  ctaButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  ctaButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });

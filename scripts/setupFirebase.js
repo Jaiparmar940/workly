@@ -63,6 +63,24 @@ service cloud.firestore {
 }
 `);
 
+console.log('🔐 Security Rules (Storage):');
+console.log(`
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Users can upload and read their own profile pictures
+    match /profilePictures/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow public read access to profile pictures (optional)
+    match /profilePictures/{userId} {
+      allow read: if true;
+    }
+  }
+}
+`);
+
 console.log('🚀 Next Steps:');
 console.log('1. Update config/firebase.ts with your Firebase config');
 console.log('2. Run the database seeder: npm run seed-database');

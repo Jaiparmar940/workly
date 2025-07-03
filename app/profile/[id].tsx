@@ -47,6 +47,11 @@ interface BusinessProfile {
   onTimeDelivery?: number;
 }
 
+// Defensive helpers
+function safe<T>(val: T | undefined | null, fallback: T): T {
+  return val !== undefined && val !== null ? val : fallback;
+}
+
 export default function PublicProfileScreen() {
   const { id } = useLocalSearchParams();
   const { currentUser } = useAuthContext();
@@ -281,31 +286,31 @@ const BusinessProfileView = ({ user, businessProfile, colors }: { user: User; bu
           <View style={styles.ratingsRow}>
             <View style={styles.ratingInfo}>
               <ThemedText style={[styles.ratingValue, { color: colors.text }]}>
-                {businessProfile.rating ? businessProfile.rating.toFixed(1) : '—'}
+                {businessProfile.rating !== undefined && businessProfile.rating !== null ? businessProfile.rating.toFixed(1) : '—'}
               </ThemedText>
               <View style={styles.starsRow}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Ionicons
                     key={star}
-                    name={star <= (businessProfile.rating || 0) ? "star" : "star-outline"}
+                    name={star <= safe(businessProfile.rating, 0) ? "star" : "star-outline"}
                     size={16}
-                    color={star <= (businessProfile.rating || 0) ? "#FFD700" : colors.tabIconDefault}
+                    color={star <= safe(businessProfile.rating, 0) ? "#FFD700" : colors.tabIconDefault}
                   />
                 ))}
               </View>
               <ThemedText style={[styles.ratingCount, { color: colors.tabIconDefault }]}>
-                {businessProfile.reviewCount || 0} reviews
+                {safe(businessProfile.reviewCount, 0)} reviews
               </ThemedText>
             </View>
             <View style={styles.ratingStats}>
               <ThemedText style={[styles.ratingStat, { color: colors.text }]}>
-                Jobs Completed: {businessProfile.completedJobs || 0}
+                Jobs Completed: {safe(businessProfile.completedJobs, 0)}
               </ThemedText>
               <ThemedText style={[styles.ratingStat, { color: colors.text }]}>
-                Response Rate: {businessProfile.responseRate || '—'}%
+                Response Rate: {businessProfile.responseRate !== undefined && businessProfile.responseRate !== null ? businessProfile.responseRate + '%' : '—'}
               </ThemedText>
               <ThemedText style={[styles.ratingStat, { color: colors.text }]}>
-                On-Time Delivery: {businessProfile.onTimeDelivery || '—'}%
+                On-Time Delivery: {businessProfile.onTimeDelivery !== undefined && businessProfile.onTimeDelivery !== null ? businessProfile.onTimeDelivery + '%' : '—'}
               </ThemedText>
             </View>
           </View>
@@ -579,21 +584,21 @@ const PersonalProfileView = ({ user, colors }: { user: User; colors: any }) => {
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Ionicons
                       key={star}
-                      name={star <= (user.rating || 0) ? "star" : "star-outline"}
+                      name={star <= safe(user.rating, 0) ? "star" : "star-outline"}
                       size={16}
-                      color={star <= (user.rating || 0) ? "#FFD700" : colors.tabIconDefault}
+                      color={star <= safe(user.rating, 0) ? "#FFD700" : colors.tabIconDefault}
                     />
                   ))}
                 </View>
                 <ThemedText style={[styles.ratingText, { color: colors.text }]}>
-                  {user.rating ? user.rating.toFixed(1) : '0.0'}
+                  {safe(user.rating, 0).toFixed(1)}
                 </ThemedText>
               </View>
               <ThemedText style={[styles.joinDate, { color: colors.tabIconDefault }]}>
                 🗓️ Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}
               </ThemedText>
               <ThemedText style={[styles.jobsCompleted, { color: colors.tabIconDefault }]}>
-                ✅ {user.completedJobs || 0} jobs completed
+                ✅ {safe(user.completedJobs, 0)} jobs completed
               </ThemedText>
             </View>
           </View>
@@ -751,20 +756,20 @@ const PersonalProfileView = ({ user, colors }: { user: User; colors: any }) => {
           <View style={styles.reviewsSummary}>
             <View style={styles.reviewStats}>
               <ThemedText style={[styles.reviewRating, { color: colors.text }]}>
-                {user.rating ? user.rating.toFixed(1) : '0.0'}
+                {safe(user.rating, 0).toFixed(1)}
               </ThemedText>
               <View style={styles.starsRow}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Ionicons
                     key={star}
-                    name={star <= (user.rating || 0) ? "star" : "star-outline"}
+                    name={star <= safe(user.rating, 0) ? "star" : "star-outline"}
                     size={20}
-                    color={star <= (user.rating || 0) ? "#FFD700" : colors.tabIconDefault}
+                    color={star <= safe(user.rating, 0) ? "#FFD700" : colors.tabIconDefault}
                   />
                 ))}
               </View>
               <ThemedText style={[styles.reviewCount, { color: colors.tabIconDefault }]}>
-                Based on {user.completedJobs || 0} completed jobs
+                Based on {safe(user.completedJobs, 0)} completed jobs
               </ThemedText>
             </View>
           </View>
@@ -776,7 +781,7 @@ const PersonalProfileView = ({ user, colors }: { user: User; colors: any }) => {
             Badges & Achievements
           </ThemedText>
           <View style={styles.badgesGrid}>
-            {user.completedJobs >= 1 && (
+            {safe(user.completedJobs, 0) >= 1 && (
               <View style={styles.badgeItem}>
                 <View style={[styles.badgeIcon, { backgroundColor: colors.tint }]}>
                   <Ionicons name="star" size={20} color="white" />
@@ -786,7 +791,7 @@ const PersonalProfileView = ({ user, colors }: { user: User; colors: any }) => {
                 </ThemedText>
               </View>
             )}
-            {user.completedJobs >= 5 && (
+            {safe(user.completedJobs, 0) >= 5 && (
               <View style={styles.badgeItem}>
                 <View style={[styles.badgeIcon, { backgroundColor: colors.tint }]}>
                   <Ionicons name="trophy" size={20} color="white" />
@@ -796,7 +801,7 @@ const PersonalProfileView = ({ user, colors }: { user: User; colors: any }) => {
                 </ThemedText>
               </View>
             )}
-            {user.rating >= 4.5 && (
+            {safe(user.rating, 0) >= 4.5 && (
               <View style={styles.badgeItem}>
                 <View style={[styles.badgeIcon, { backgroundColor: colors.tint }]}>
                   <Ionicons name="heart" size={20} color="white" />
@@ -814,10 +819,10 @@ const PersonalProfileView = ({ user, colors }: { user: User; colors: any }) => {
           <ThemedText style={[styles.sectionTitle, { color: colors.text }]}>
             Recently Completed Jobs
           </ThemedText>
-          {user.completedJobs > 0 ? (
+          {safe(user.completedJobs, 0) > 0 ? (
             <View style={styles.completedJobsList}>
               {/* Sample completed jobs - in a real app, this would come from a database */}
-              {Array.from({ length: Math.min(user.completedJobs, 3) }, (_, index) => (
+              {Array.from({ length: Math.min(safe(user.completedJobs, 0), 3) }, (_, index) => (
                 <View key={index} style={styles.completedJobItem}>
                   <View style={styles.completedJobHeader}>
                     <ThemedText style={[styles.completedJobTitle, { color: colors.text }]}>

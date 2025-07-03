@@ -1,6 +1,5 @@
 import { Captcha } from '@/components/Captcha';
 import { OnboardingComplete } from '@/components/OnboardingComplete';
-import SkillDiscovery from '@/components/SkillDiscovery';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
@@ -9,23 +8,24 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { useRateLimit } from '@/hooks/useRateLimit';
 import { User, UserIntent } from '@/types';
 import { createBotDetector } from '@/utils/botDetection';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 export default function SignUpScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { signUp, loading, error, clearError } = useAuthContext();
+  const navigation = useNavigation();
 
   // Anti-bot measures
   const rateLimit = useRateLimit({
@@ -39,11 +39,7 @@ export default function SignUpScreen() {
   const [formStartTime] = useState(Date.now());
   const [userIntent, setUserIntent] = useState<null | UserIntent>(null);
   const [showIntentStep, setShowIntentStep] = useState(false);
-  const [showSkillDiscovery, setShowSkillDiscovery] = useState(false);
   const [showFinalScreen, setShowFinalScreen] = useState(false);
-  const [discoveredSkills, setDiscoveredSkills] = useState<string[]>([]);
-  const [discoveredExperience, setDiscoveredExperience] = useState('');
-  const [discoveredInterests, setDiscoveredInterests] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -145,208 +141,190 @@ export default function SignUpScreen() {
   // Handler for intent selection
   const handleIntentSelect = async (intent: UserIntent) => {
     setUserIntent(intent);
+    setShowIntentStep(false);
     
     if (intent === UserIntent.INDIVIDUAL_LOOKING_FOR_WORK) {
-      // Show skill discovery for individuals looking for work
-      setShowSkillDiscovery(true);
-      return;
-    }
-    
-    try {
-      console.log('Starting signup process...');
-      
-      // Determine account type and worker profile completion based on intent
-      const isBusinessAccount = intent === UserIntent.BUSINESS_LOOKING_FOR_WORK;
-      const needsWorkerProfile = intent === UserIntent.BUSINESS_LOOKING_FOR_WORK;
-      
-      const userData: Omit<User, 'id' | 'createdAt'> = {
-        name: formData.name,
-        email: formData.email,
-        skills: needsWorkerProfile ? [] : [], // Empty skills for service-only users
-        experience: needsWorkerProfile ? 'No experience specified' : 'No experience specified',
-        interests: needsWorkerProfile ? [] : [], // Empty interests for service-only users
-        rating: 0,
-        completedJobs: 0,
-        location: {
-          city: formData.city || 'Unknown',
-          state: formData.state || 'Unknown',
-          zipCode: formData.zipCode || '00000',
-        },
-        accountType: isBusinessAccount ? 'business' : 'personal',
-        workerProfileComplete: !needsWorkerProfile, // Complete if they don't need worker profile
-      };
+      // For individuals looking for work, go directly to onboarding
+      // Don't show skill discovery here - let onboarding handle it
+      try {
+        console.log('Starting signup process for individual looking for work...');
+        
+        const userData: Omit<User, 'id' | 'createdAt'> = {
+          name: formData.name,
+          email: formData.email,
+          skills: [],
+          experience: '',
+          interests: [],
+          rating: 0,
+          completedJobs: 0,
+          location: {
+            city: formData.city || 'Unknown',
+            state: formData.state || 'Unknown',
+            zipCode: formData.zipCode || '00000',
+          },
+          accountType: 'personal',
+          workerProfileComplete: false, // Will be completed in onboarding
+        };
 
-      // Only add phone if it has a value
-      if (formData.phone && formData.phone.trim()) {
-        (userData as any).phone = formData.phone.trim();
+        // Only add phone if it has a value
+        if (formData.phone && formData.phone.trim()) {
+          (userData as any).phone = formData.phone.trim();
+        }
+
+        console.log('User data prepared:', userData);
+        const result = await signUp(formData.email, formData.password, userData);
+        console.log('Signup successful:', result);
+        
+        // Reset the navigation stack so onboarding is the root
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'onboarding', params: {} }],
+        });
+      } catch (error: any) {
+        console.error('Signup error:', error);
+        
+        // Check if the error is due to an existing account
+        const errorMessage = error.message || '';
+        const isExistingAccount = errorMessage.includes('already in use') || 
+                                 errorMessage.includes('already exists') ||
+                                 errorMessage.includes('email-already-in-use') ||
+                                 error.code === 'auth/email-already-in-use';
+        
+        if (isExistingAccount) {
+          Alert.alert(
+            'Account Already Exists',
+            'An account with this email already exists. Please log in instead.',
+            [
+              {
+                text: 'Go to Login',
+                onPress: () => router.replace('/login' as any)
+              }
+            ]
+          );
+        } else {
+          // Show the actual error message to the user for other errors
+          const displayMessage = errorMessage || 'Failed to create account. Please try again.';
+          Alert.alert('Signup Failed', displayMessage);
+        }
       }
+    } else if (intent === UserIntent.INDIVIDUAL_NEEDING_SERVICES) {
+      // For individuals needing services, complete signup and show final screen
+      try {
+        console.log('Starting signup process for individual needing services...');
+        
+        const userData: Omit<User, 'id' | 'createdAt'> = {
+          name: formData.name,
+          email: formData.email,
+          skills: [],
+          experience: '',
+          interests: [],
+          rating: 0,
+          completedJobs: 0,
+          location: {
+            city: formData.city || 'Unknown',
+            state: formData.state || 'Unknown',
+            zipCode: formData.zipCode || '00000',
+          },
+          accountType: 'personal',
+          workerProfileComplete: true, // Complete for service seekers
+        };
 
-      console.log('User data prepared:', userData);
-      const result = await signUp(formData.email, formData.password, userData);
-      console.log('Signup successful:', result);
-      
-      if (intent === UserIntent.INDIVIDUAL_NEEDING_SERVICES) {
+        // Only add phone if it has a value
+        if (formData.phone && formData.phone.trim()) {
+          (userData as any).phone = formData.phone.trim();
+        }
+
+        console.log('User data prepared:', userData);
+        const result = await signUp(formData.email, formData.password, userData);
+        console.log('Signup successful:', result);
+        
         setShowFinalScreen(true);
-      } else if (intent === UserIntent.BUSINESS_LOOKING_FOR_WORK) {
-        // For business owners looking for work, go to business onboarding
+      } catch (error: any) {
+        console.error('Signup error:', error);
+        
+        // Check if the error is due to an existing account
+        const errorMessage = error.message || '';
+        const isExistingAccount = errorMessage.includes('already in use') || 
+                                 errorMessage.includes('already exists') ||
+                                 errorMessage.includes('email-already-in-use') ||
+                                 error.code === 'auth/email-already-in-use';
+        
+        if (isExistingAccount) {
+          Alert.alert(
+            'Account Already Exists',
+            'An account with this email already exists. Please log in instead.',
+            [
+              {
+                text: 'Go to Login',
+                onPress: () => router.replace('/login' as any)
+              }
+            ]
+          );
+        } else {
+          // Show the actual error message to the user for other errors
+          const displayMessage = errorMessage || 'Failed to create account. Please try again.';
+          Alert.alert('Signup Failed', displayMessage);
+        }
+      }
+    } else if (intent === UserIntent.BUSINESS_LOOKING_FOR_WORK) {
+      // For business owners, go to business onboarding
+      try {
+        console.log('Starting signup process for business owner...');
+        
+        const userData: Omit<User, 'id' | 'createdAt'> = {
+          name: formData.name,
+          email: formData.email,
+          skills: [],
+          experience: '',
+          interests: [],
+          rating: 0,
+          completedJobs: 0,
+          location: {
+            city: formData.city || 'Unknown',
+            state: formData.state || 'Unknown',
+            zipCode: formData.zipCode || '00000',
+          },
+          accountType: 'business',
+          workerProfileComplete: false, // Will be completed in business onboarding
+        };
+
+        // Only add phone if it has a value
+        if (formData.phone && formData.phone.trim()) {
+          (userData as any).phone = formData.phone.trim();
+        }
+
+        console.log('User data prepared:', userData);
+        const result = await signUp(formData.email, formData.password, userData);
+        console.log('Signup successful:', result);
+        
+        // Go to business onboarding
         router.replace('/business-onboarding' as any);
-      } else {
-        // For individual users looking for work, continue to regular onboarding
-        router.replace('/onboarding' as any);
-      }
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      
-      // Check if the error is due to an existing account
-      const errorMessage = error.message || '';
-      const isExistingAccount = errorMessage.includes('already in use') || 
-                               errorMessage.includes('already exists') ||
-                               errorMessage.includes('email-already-in-use') ||
-                               error.code === 'auth/email-already-in-use';
-      
-      if (isExistingAccount) {
-        Alert.alert(
-          'Account Already Exists',
-          'An account with this email already exists. Please log in instead.',
-          [
-            {
-              text: 'Go to Login',
-              onPress: () => router.replace('/login' as any)
-            }
-          ]
-        );
-      } else {
-        // Show the actual error message to the user for other errors
-        const displayMessage = errorMessage || 'Failed to create account. Please try again.';
-        Alert.alert('Signup Failed', displayMessage);
-      }
-    }
-  };
-
-  // Handler for skill discovery completion
-  const handleSkillDiscoveryComplete = async (skills: string[], experience: string, interests: string[], availability: string) => {
-    setDiscoveredSkills(skills);
-    setDiscoveredExperience(experience);
-    setDiscoveredInterests(interests);
-    
-    try {
-      console.log('Starting signup process with discovered skills...');
-      
-      const userData: Omit<User, 'id' | 'createdAt'> = {
-        name: formData.name,
-        email: formData.email,
-        skills: skills,
-        experience: experience,
-        interests: interests,
-        rating: 0,
-        completedJobs: 0,
-        location: {
-          city: formData.city || 'Unknown',
-          state: formData.state || 'Unknown',
-          zipCode: formData.zipCode || '00000',
-        },
-        accountType: 'personal',
-        workerProfileComplete: true, // Mark as complete since we have skills
-      };
-
-      // Only add phone if it has a value
-      if (formData.phone && formData.phone.trim()) {
-        (userData as any).phone = formData.phone.trim();
-      }
-
-      console.log('User data prepared with skills:', userData);
-      const result = await signUp(formData.email, formData.password, userData);
-      console.log('Signup successful:', result);
-      
-      // Go to onboarding to complete additional profile details
-      router.replace('/onboarding' as any);
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      
-      // Check if the error is due to an existing account
-      const errorMessage = error.message || '';
-      const isExistingAccount = errorMessage.includes('already in use') || 
-                               errorMessage.includes('already exists') ||
-                               errorMessage.includes('email-already-in-use') ||
-                               error.code === 'auth/email-already-in-use';
-      
-      if (isExistingAccount) {
-        Alert.alert(
-          'Account Already Exists',
-          'An account with this email already exists. Please log in instead.',
-          [
-            {
-              text: 'Go to Login',
-              onPress: () => router.replace('/login' as any)
-            }
-          ]
-        );
-      } else {
-        // Show the actual error message to the user for other errors
-        const displayMessage = errorMessage || 'Failed to create account. Please try again.';
-        Alert.alert('Signup Failed', displayMessage);
-      }
-    }
-  };
-
-  // Handler for skill discovery skip
-  const handleSkillDiscoverySkip = async () => {
-    try {
-      console.log('Starting signup process without skills...');
-      
-      const userData: Omit<User, 'id' | 'createdAt'> = {
-        name: formData.name,
-        email: formData.email,
-        skills: [],
-        experience: 'No experience specified',
-        interests: [],
-        rating: 0,
-        completedJobs: 0,
-        location: {
-          city: formData.city || 'Unknown',
-          state: formData.state || 'Unknown',
-          zipCode: formData.zipCode || '00000',
-        },
-        accountType: 'personal',
-        workerProfileComplete: false, // Not complete since they skipped
-      };
-
-      // Only add phone if it has a value
-      if (formData.phone && formData.phone.trim()) {
-        (userData as any).phone = formData.phone.trim();
-      }
-
-      console.log('User data prepared without skills:', userData);
-      const result = await signUp(formData.email, formData.password, userData);
-      console.log('Signup successful:', result);
-      
-      // Go to onboarding to complete profile
-      router.replace('/onboarding' as any);
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      
-      // Check if the error is due to an existing account
-      const errorMessage = error.message || '';
-      const isExistingAccount = errorMessage.includes('already in use') || 
-                               errorMessage.includes('already exists') ||
-                               errorMessage.includes('email-already-in-use') ||
-                               error.code === 'auth/email-already-in-use';
-      
-      if (isExistingAccount) {
-        Alert.alert(
-          'Account Already Exists',
-          'An account with this email already exists. Please log in instead.',
-          [
-            {
-              text: 'Go to Login',
-              onPress: () => router.replace('/login' as any)
-            }
-          ]
-        );
-      } else {
-        // Show the actual error message to the user for other errors
-        const displayMessage = errorMessage || 'Failed to create account. Please try again.';
-        Alert.alert('Signup Failed', displayMessage);
+      } catch (error: any) {
+        console.error('Signup error:', error);
+        
+        // Check if the error is due to an existing account
+        const errorMessage = error.message || '';
+        const isExistingAccount = errorMessage.includes('already in use') || 
+                                 errorMessage.includes('already exists') ||
+                                 errorMessage.includes('email-already-in-use') ||
+                                 error.code === 'auth/email-already-in-use';
+        
+        if (isExistingAccount) {
+          Alert.alert(
+            'Account Already Exists',
+            'An account with this email already exists. Please log in instead.',
+            [
+              {
+                text: 'Go to Login',
+                onPress: () => router.replace('/login' as any)
+              }
+            ]
+          );
+        } else {
+          // Show the actual error message to the user for other errors
+          const displayMessage = errorMessage || 'Failed to create account. Please try again.';
+          Alert.alert('Signup Failed', displayMessage);
+        }
       }
     }
   };
@@ -643,15 +621,6 @@ export default function SignUpScreen() {
         {/* Main signup form only if userIntent is 'find' or 'both' and after intent step */}
         {/* Place additional onboarding steps here if needed */}
       </ScrollView>
-
-      {/* Skill Discovery Component */}
-      {showSkillDiscovery && (
-        <SkillDiscovery
-          onComplete={handleSkillDiscoveryComplete}
-          onSkip={handleSkillDiscoverySkip}
-          userName={formData.name}
-        />
-      )}
     </KeyboardAvoidingView>
   );
 }

@@ -14,13 +14,15 @@ import {
     updateDoc,
     where
 } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { db, storage } from '../config/firebase';
 import {
     Application,
     Conversation,
     ConversationMessage,
     Job,
     JobCategory,
+    JobComplexity,
     JobMatch,
     JobStatus,
     JobType,
@@ -29,6 +31,7 @@ import {
     MessageType,
     User
 } from '../types';
+import { getOpenAIService } from './openaiService';
 
 // Collection names
 const COLLECTIONS = {
@@ -413,6 +416,43 @@ export class FirebaseService {
     const openJobs = await this.getJobsByStatus(JobStatus.OPEN);
     const matches: JobMatch[] = [];
 
+    // Try AI-powered matching first
+    const openAIService = getOpenAIService();
+    if (openAIService) {
+      try {
+        const aiRecommendations = await openAIService.generateJobRecommendations(
+          user,
+          openJobs,
+          {
+            maxDistance: 50, // 50 miles
+            minPay: user.workPreferences?.jobTypes?.includes('high-paying') ? 50 : 20,
+            preferredCategories: user.interests,
+            availability: user.workPreferences?.availability
+          }
+        );
+
+        // Convert AI recommendations to JobMatch format
+        for (const rec of aiRecommendations.recommendations) {
+          const match: JobMatch = {
+            jobId: rec.jobId,
+            userId: user.id,
+            matchScore: rec.score,
+            reasons: rec.reasons,
+            createdAt: new Date()
+          };
+          
+          matches.push(match);
+          // Save match to database
+          await this.createJobMatch(match);
+        }
+
+        return matches.sort((a, b) => b.matchScore - a.matchScore);
+      } catch (error) {
+        console.error('AI job matching failed, falling back to basic matching:', error);
+      }
+    }
+
+    // Fallback to basic matching algorithm
     for (const job of openJobs) {
       let matchScore = 0;
       const reasons: string[] = [];
@@ -475,6 +515,171 @@ export class FirebaseService {
     }
 
     return matches.sort((a, b) => b.matchScore - a.matchScore);
+  }
+
+  // New AI-enhanced methods
+  static async createJobWithAICategorization(jobData: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>): Promise<Job> {
+    const openAIService = getOpenAIService();
+    
+    if (openAIService) {
+      try {
+        const categorization = await openAIService.categorizeJob(jobData.description, jobData.title);
+        
+        // Enhance job data with AI insights
+        const enhancedJobData = {
+          ...jobData,
+          category: categorization.category as JobCategory,
+          complexity: categorization.complexity as JobComplexity,
+          skills: [...jobData.skills, ...categorization.requiredSkills],
+          budget: {
+            min: Math.max(jobData.budget.min, categorization.suggestedBudget.min),
+            max: Math.max(jobData.budget.max, categorization.suggestedBudget.max),
+            currency: jobData.budget.currency
+          }
+        };
+
+        return await this.createJob(enhancedJobData);
+      } catch (error) {
+        console.error('AI categorization failed, using original job data:', error);
+      }
+    }
+
+    return await this.createJob(jobData);
+  }
+
+  static async getQuickMoneyOpportunities(userId: string): Promise<Array<{
+    opportunity: string;
+    estimatedEarnings: string;
+    timeToComplete: string;
+    requirements: string[];
+    platforms: string[];
+  }>> {
+    const user = await this.getUserById(userId);
+    if (!user) return [];
+
+    const openAIService = getOpenAIService();
+    if (openAIService) {
+      try {
+        const location = `${user.location.city}, ${user.location.state}`;
+        return await openAIService.generateQuickMoneySuggestions(
+          location,
+          user.skills,
+          'immediate'
+        );
+      } catch (error) {
+        console.error('AI quick money suggestions failed:', error);
+      }
+    }
+
+    // Fallback suggestions
+    return [
+      {
+        opportunity: 'Food delivery',
+        estimatedEarnings: '$15-25/hour',
+        timeToComplete: 'Immediate',
+        requirements: ['Vehicle or bike', 'Smartphone'],
+        platforms: ['DoorDash', 'Uber Eats', 'Grubhub']
+      },
+      {
+        opportunity: 'Grocery shopping',
+        estimatedEarnings: '$20-30/hour',
+        timeToComplete: 'Same day',
+        requirements: ['Vehicle', 'Smartphone'],
+        platforms: ['Instacart', 'Shipt']
+      }
+    ];
+  }
+
+  static async analyzeSkillGapForJob(userId: string, jobId: string): Promise<{
+    missingSkills: string[];
+    learningResources: Array<{
+      skill: string;
+      resource: string;
+      estimatedTime: string;
+    }>;
+    alternativeJobs: string[];
+  }> {
+    const [user, job] = await Promise.all([
+      this.getUserById(userId),
+      this.getJobById(jobId)
+    ]);
+
+    if (!user || !job) {
+      throw new Error('User or job not found');
+    }
+
+    const openAIService = getOpenAIService();
+    if (openAIService) {
+      try {
+        return await openAIService.analyzeSkillGap(
+          user.skills,
+          job.skills,
+          user.experience
+        );
+      } catch (error) {
+        console.error('AI skill gap analysis failed:', error);
+      }
+    }
+
+    // Fallback analysis
+    const missingSkills = job.skills.filter(skill => 
+      !user.skills.some(userSkill => 
+        userSkill.toLowerCase().includes(skill.toLowerCase()) ||
+        skill.toLowerCase().includes(userSkill.toLowerCase())
+      )
+    );
+
+    return {
+      missingSkills,
+      learningResources: missingSkills.map(skill => ({
+        skill,
+        resource: 'Online courses and tutorials',
+        estimatedTime: '2-4 weeks'
+      })),
+      alternativeJobs: ['General gig work', 'Basic tasks']
+    };
+  }
+
+  static async getUrgentJobs(): Promise<Job[]> {
+    // Get jobs that are likely urgent based on keywords and time sensitivity
+    const allJobs = await this.getAllJobs();
+    
+    const urgentKeywords = [
+      'urgent', 'asap', 'immediate', 'today', 'tonight', 'emergency',
+      'quick', 'fast', 'rush', 'deadline', 'time-sensitive'
+    ];
+
+    return allJobs.filter(job => {
+      const text = `${job.title} ${job.description}`.toLowerCase();
+      const hasUrgentKeywords = urgentKeywords.some(keyword => text.includes(keyword));
+      
+      // Also consider jobs posted recently as potentially urgent
+      const postedRecently = new Date().getTime() - job.createdAt.getTime() < 24 * 60 * 60 * 1000; // Last 24 hours
+      
+      return hasUrgentKeywords || postedRecently;
+    }).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  static async getHighPayingJobs(minPay: number = 50): Promise<Job[]> {
+    const allJobs = await this.getAllJobs();
+    
+    return allJobs.filter(job => 
+      job.budget.min >= minPay || job.budget.max >= minPay
+    ).sort((a, b) => b.budget.max - a.budget.max);
+  }
+
+  static async getJobsBySkillMatch(userId: string, skill: string): Promise<Job[]> {
+    const user = await this.getUserById(userId);
+    if (!user) return [];
+
+    const allJobs = await this.getAllJobs();
+    
+    return allJobs.filter(job => 
+      job.skills.some(jobSkill => 
+        jobSkill.toLowerCase().includes(skill.toLowerCase()) ||
+        skill.toLowerCase().includes(jobSkill.toLowerCase())
+      )
+    );
   }
 
   // ===== UTILITY FUNCTIONS =====
@@ -1171,6 +1376,52 @@ I look forward to hearing from you!`,
       return jobIds;
     } catch (error) {
       console.error('Error populating sample jobs:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload a profile image to Firebase Storage and return the download URL.
+   * @param userId The user's ID
+   * @param uri The local URI of the image
+   */
+  static async uploadProfileImage(userId: string, uri: string): Promise<string> {
+    try {
+      console.log('FirebaseService: Starting profile image upload for user:', userId);
+      console.log('FirebaseService: Image URI:', uri);
+      
+      // Fetch the image as a blob
+      console.log('FirebaseService: Fetching image as blob...');
+      const response = await fetch(uri);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      console.log('FirebaseService: Image blob size:', blob.size, 'bytes');
+      
+      // Create a storage ref
+      const imageRef = ref(storage, `profilePictures/${userId}.jpg`);
+      console.log('FirebaseService: Storage reference created:', imageRef.fullPath);
+      
+      // Upload the blob
+      console.log('FirebaseService: Uploading blob to Firebase Storage...');
+      await uploadBytes(imageRef, blob, { contentType: 'image/jpeg' });
+      console.log('FirebaseService: Upload successful');
+      
+      // Get the download URL
+      console.log('FirebaseService: Getting download URL...');
+      const downloadURL = await getDownloadURL(imageRef);
+      console.log('FirebaseService: Download URL obtained:', downloadURL);
+      
+      return downloadURL;
+    } catch (error: any) {
+      console.error('FirebaseService: Error uploading profile image:', error);
+      console.error('FirebaseService: Error details:', {
+        code: error?.code,
+        message: error?.message,
+        serverResponse: error?.serverResponse
+      });
       throw error;
     }
   }

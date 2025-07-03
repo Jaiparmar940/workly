@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Colors } from '../constants/Colors';
 import { useColorScheme } from '../hooks/useColorScheme';
@@ -28,75 +28,313 @@ interface SkillBubbleDiscoveryProps {
   onSkip: () => void;
 }
 
-// Skill data structure - general categories first, then specific skills
-const SKILL_DATA: SkillBubble[] = [
-  // General categories (level 1)
-  { id: 'tech', name: 'Technology', category: 'Technology', level: 'general' },
-  { id: 'creative', name: 'Creative Arts', category: 'Creative', level: 'general' },
-  { id: 'business', name: 'Business', category: 'Business', level: 'general' },
-  { id: 'services', name: 'Services', category: 'Services', level: 'general' },
-  { id: 'health', name: 'Health & Wellness', category: 'Health', level: 'general' },
-  { id: 'education', name: 'Education', category: 'Education', level: 'general' },
-  { id: 'crafts', name: 'Crafts & DIY', category: 'Crafts', level: 'general' },
-  { id: 'outdoor', name: 'Outdoor & Nature', category: 'Outdoor', level: 'general' },
+export const SKILL_DATA: SkillBubble[] = [
+  // ────────────────────────────────────────────
+  // Level 1 (General) – existing categories
+  // ────────────────────────────────────────────
+  { id: 'home',            name: 'Home Help',                        category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'yard',            name: 'Yard & Outdoor',                   category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'moving',          name: 'Moving Help',                      category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'pet',             name: 'Pet Care',                         category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'errands',         name: 'Errands & Delivery',               category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'auto',            name: 'Auto Care',                        category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'tech',            name: 'Basic Tech Help',                  category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'handyman',        name: 'Handyman & Repairs',               category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'creative',        name: 'Creative & Digital',               category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'admin',           name: 'Administrative & Office Support',  category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'event',           name: 'Event Support',                    category: 'Gig', level: 'general', parentId: undefined },
 
-  // Technology specific (level 2)
-  { id: 'web-dev', name: 'Web Development', category: 'Technology', level: 'specific', parentId: 'tech' },
-  { id: 'mobile-dev', name: 'Mobile Development', category: 'Technology', level: 'specific', parentId: 'tech' },
-  { id: 'data-science', name: 'Data Science', category: 'Technology', level: 'specific', parentId: 'tech' },
-  { id: 'ai-ml', name: 'AI & Machine Learning', category: 'Technology', level: 'specific', parentId: 'tech' },
-  { id: 'cybersecurity', name: 'Cybersecurity', category: 'Technology', level: 'specific', parentId: 'tech' },
-  { id: 'devops', name: 'DevOps', category: 'Technology', level: 'specific', parentId: 'tech' },
+  // ────────────────────────────────────────────
+  // Level 1 (General) – NEW categories
+  // ────────────────────────────────────────────
+  { id: 'personalCare',    name: 'Personal Care (Non-medical)',      category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'transport',       name: 'Transport & Driving',              category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'landscaping',     name: 'Landscaping & Gardening',          category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'techDev',         name: 'Tech Development',                 category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'writing',         name: 'Writing & Editing',                category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'tutoring',        name: 'Tutoring & Education',             category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'photography',     name: 'Photography & Media',              category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'marketing',       name: 'Marketing & Social Media',         category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'finance',         name: 'Finance & Bookkeeping',            category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'logistics',       name: 'Logistics & Shipping',             category: 'Gig', level: 'general', parentId: undefined },
+  { id: 'personalAsst',    name: 'Personal Assistance',              category: 'Gig', level: 'general', parentId: undefined },
+  
 
-  // Creative Arts specific (level 2)
-  { id: 'graphic-design', name: 'Graphic Design', category: 'Creative', level: 'specific', parentId: 'creative' },
-  { id: 'ui-ux', name: 'UI/UX Design', category: 'Creative', level: 'specific', parentId: 'creative' },
-  { id: 'photography', name: 'Photography', category: 'Creative', level: 'specific', parentId: 'creative' },
-  { id: 'video-editing', name: 'Video Editing', category: 'Creative', level: 'specific', parentId: 'creative' },
-  { id: 'music', name: 'Music', category: 'Creative', level: 'specific', parentId: 'creative' },
-  { id: 'writing', name: 'Writing', category: 'Creative', level: 'specific', parentId: 'creative' },
+    // ────────────────────────────────────────────
+    // Level 2 (Specific) – original "Home Help" sub-skills
+    // ────────────────────────────────────────────
+    { id: 'cleaning',    name: 'House Cleaning',                 category: 'Gig', level: 'specific', parentId: 'home' },
+    { id: 'laundry',     name: 'Laundry',                        category: 'Gig', level: 'specific', parentId: 'home' },
+    { id: 'organizing',  name: 'Home Organizing',                category: 'Gig', level: 'specific', parentId: 'home' },
+    { id: 'babysitting', name: 'Babysitting',                    category: 'Gig', level: 'specific', parentId: 'home' },
+    { id: 'eldercare',   name: 'Elder Care',                     category: 'Gig', level: 'specific', parentId: 'home' },
+    { id: 'deepclean',   name: 'Deep Cleaning',                  category: 'Gig', level: 'specific', parentId: 'cleaning' },
+    { id: 'window',      name: 'Window Cleaning',                category: 'Gig', level: 'specific', parentId: 'cleaning' },
+  
+    // ────────────────────────────────────────────
+    // Level 2 (Specific) – original "Yard & Outdoor"
+    // ────────────────────────────────────────────
+    { id: 'yardwork',    name: 'Yard Work',                      category: 'Gig', level: 'specific', parentId: 'yard' },
+    { id: 'mowing',      name: 'Lawn Mowing',                    category: 'Gig', level: 'specific', parentId: 'yardwork' },
+    { id: 'weeding',     name: 'Weeding',                        category: 'Gig', level: 'specific', parentId: 'yardwork' },
+    { id: 'trimming',    name: 'Hedge Trimming',                 category: 'Gig', level: 'specific', parentId: 'yardwork' },
+    { id: 'snow',        name: 'Snow Removal',                   category: 'Gig', level: 'specific', parentId: 'yard' },
+    { id: 'pool',        name: 'Pool Cleaning',                  category: 'Gig', level: 'specific', parentId: 'yard' },
+  
+    // ────────────────────────────────────────────
+    // Level 2 (Specific) – original "Moving Help"
+    // ────────────────────────────────────────────
+    { id: 'movingboxes', name: 'Box Packing',                    category: 'Gig', level: 'specific', parentId: 'moving' },
+    { id: 'furniture',   name: 'Furniture Assembly',             category: 'Gig', level: 'specific', parentId: 'moving' },
+    { id: 'lifting',     name: 'Heavy Lifting',                  category: 'Gig', level: 'specific', parentId: 'moving' },
+  
+    // ────────────────────────────────────────────
+    // Level 2 (Specific) – original "Pet Care"
+    // ────────────────────────────────────────────
+    { id: 'dogwalking',  name: 'Dog Walking',                    category: 'Gig', level: 'specific', parentId: 'pet' },
+    { id: 'petfeeding',  name: 'Pet Feeding',                    category: 'Gig', level: 'specific', parentId: 'pet' },
+    { id: 'petgrooming', name: 'Pet Grooming',                   category: 'Gig', level: 'specific', parentId: 'pet' },
+  
+    // ────────────────────────────────────────────
+    // Level 2 (Specific) – original "Errands & Delivery"
+    // ────────────────────────────────────────────
+    { id: 'grocery',     name: 'Grocery Shopping',               category: 'Gig', level: 'specific', parentId: 'errands' },
+    { id: 'prescription',name: 'Prescription Pickup',            category: 'Gig', level: 'specific', parentId: 'errands' },
+    { id: 'fooddelivery',name: 'Food Delivery',                  category: 'Gig', level: 'specific', parentId: 'errands' },
+    { id: 'rideshare',   name: 'Rideshare/Driving',              category: 'Gig', level: 'specific', parentId: 'errands' },
+  
+    // ────────────────────────────────────────────
+    // Level 2 (Specific) – original "Auto Care"
+    // ────────────────────────────────────────────
+    { id: 'carwash',     name: 'Car Wash',                       category: 'Gig', level: 'specific', parentId: 'auto' },
+    { id: 'oilchange',   name: 'Oil Change',                     category: 'Gig', level: 'specific', parentId: 'auto' },
+    { id: 'tire',        name: 'Tire Change',                    category: 'Gig', level: 'specific', parentId: 'auto' },
+  
+    // ────────────────────────────────────────────
+    // Level 2 (Specific) – original "Basic Tech Help"
+    // ────────────────────────────────────────────
+    { id: 'techsetup',   name: 'Device Setup',                   category: 'Gig', level: 'specific', parentId: 'tech' },
+    { id: 'wifi',        name: 'WiFi Setup',                     category: 'Gig', level: 'specific', parentId: 'tech' },
+    { id: 'printer',     name: 'Printer Setup',                  category: 'Gig', level: 'specific', parentId: 'tech' },
+  
+    // ────────────────────────────────────────────
+    // Level 2 (Specific) – new under Handyman & Repairs
+    // ────────────────────────────────────────────
+    { id: 'painting',        name: 'Painting',                   category: 'Gig', level: 'specific', parentId: 'handyman' },
+    { id: 'installation',    name: 'Basic Installation',         category: 'Gig', level: 'specific', parentId: 'handyman' },
+    { id: 'minorRepairs',    name: 'Minor Repairs',             category: 'Gig', level: 'specific', parentId: 'handyman' },
+    { id: 'assembly',        name: 'Assembly',                   category: 'Gig', level: 'specific', parentId: 'handyman' },
+  
+    // Level 3 (subSpecific) – under Painting
+    { id: 'fencePainting',     name: 'Fence Painting',              category: 'Gig', level: 'specific', parentId: 'painting' },
+    { id: 'interiorPainting',  name: 'Interior Painting',           category: 'Gig', level: 'specific', parentId: 'painting' },
+    { id: 'trimPainting',      name: 'Trim Painting',               category: 'Gig', level: 'specific', parentId: 'painting' },
+  
+    // Level 3 – under Installation
+    { id: 'shelfInstallation', name: 'Shelf Installation',          category: 'Gig', level: 'specific', parentId: 'installation' },
+    { id: 'tvMounting',        name: 'TV Mounting',                 category: 'Gig', level: 'specific', parentId: 'installation' },
+    { id: 'blindInstallation', name: 'Blind/Curtain Rod Installation', category: 'Gig', level: 'specific', parentId: 'installation' },
+  
+    // Level 3 – under Minor Repairs
+    { id: 'drywallPatching',   name: 'Drywall Patching',            category: 'Gig', level: 'specific', parentId: 'minorRepairs' },
+    { id: 'doorAdjustment',    name: 'Door Hinge Adjustment',       category: 'Gig', level: 'specific', parentId: 'minorRepairs' },
+    { id: 'caulking',          name: 'Caulking',                    category: 'Gig', level: 'specific', parentId: 'minorRepairs' },
+    { id: 'lightInstallation', name: 'Light Fixture Installation',  category: 'Gig', level: 'specific', parentId: 'minorRepairs' },
+  
+    // Level 3 – under Assembly
+    { id: 'ikeaAssembly',      name: 'Furniture Assembly',     category: 'Gig', level: 'specific', parentId: 'assembly' },
+    { id: 'toyAssembly',       name: 'Toy Assembly',                category: 'Gig', level: 'specific', parentId: 'assembly' },
+    { id: 'bikeAssembly',      name: 'Bike Assembly',               category: 'Gig', level: 'specific', parentId: 'assembly' },
+  
+    // ────────────────────────────────────────────
+    // Level 2 (Specific) – under Creative & Digital
+    // ────────────────────────────────────────────
+    { id: 'dataEntry',      name: 'Data Entry',                    category: 'Gig', level: 'specific', parentId: 'creative' },
+    { id: 'transcription',  name: 'Transcription',                 category: 'Gig', level: 'specific', parentId: 'creative' },
+    { id: 'translation',    name: 'Translation',                   category: 'Gig', level: 'specific', parentId: 'creative' },
+    { id: 'graphicDesign',  name: 'Basic Graphic Design',          category: 'Gig', level: 'specific', parentId: 'creative' },
+    { id: 'photoEditing',   name: 'Photo Editing',                 category: 'Gig', level: 'specific', parentId: 'creative' },
+    { id: 'videoEditing',   name: 'Video Editing',                 category: 'Gig', level: 'specific', parentId: 'creative' },
+    { id: 'webSetup',       name: 'Basic Website Setup',           category: 'Gig', level: 'specific', parentId: 'creative' },
+    { id: 'remoteSupport',  name: 'Remote Tech Support',           category: 'Gig', level: 'specific', parentId: 'creative' },
+  
+    // Level 3 (subSpecific) – under Data Entry
+    { id: 'spreadsheetSetup',   name: 'Spreadsheet Setup',       category: 'Gig', level: 'specific', parentId: 'dataEntry' },
+    { id: 'documentFormatting', name: 'Document Formatting',     category: 'Gig', level: 'specific', parentId: 'dataEntry' },
+    { id: 'presentationPrep',   name: 'Presentation Preparation',category: 'Gig', level: 'specific', parentId: 'dataEntry' },
+  
+    // Level 3 – under Transcription
+    { id: 'audioTranscription', name: 'Audio Transcription',      category: 'Gig', level: 'specific', parentId: 'transcription' },
+    { id: 'videoCaptioning',    name: 'Video Captioning',         category: 'Gig', level: 'specific', parentId: 'transcription' },
+  
+    // Level 3 – under Translation
+    { id: 'basicTranslationES', name: 'Basic English–Spanish Translation', category: 'Gig', level: 'specific', parentId: 'translation' },
+    { id: 'basicTranslationFR', name: 'Basic English–French Translation',  category: 'Gig', level: 'specific', parentId: 'translation' },
+  
+    // Level 3 – under Graphic Design
+    { id: 'flyerDesign',        name: 'Flyer Design',            category: 'Gig', level: 'specific', parentId: 'graphicDesign' },
+    { id: 'logoMockup',         name: 'Logo Mockup',             category: 'Gig', level: 'specific', parentId: 'graphicDesign' },
+  
+    // Level 3 – under Video Editing
+    { id: 'videoTrimming',      name: 'Video Trimming',          category: 'Gig', level: 'specific', parentId: 'videoEditing' },
+    { id: 'subtitleInsertion',  name: 'Subtitle Insertion',      category: 'Gig', level: 'specific', parentId: 'videoEditing' },
+  
+    // Level 3 – under Web Setup
+    { id: 'wordpressSetup',     name: 'WordPress Setup',         category: 'Gig', level: 'specific', parentId: 'webSetup' },
+    { id: 'shopifySetup',       name: 'Shopify Store Setup',     category: 'Gig', level: 'specific', parentId: 'webSetup' },
+    { id: 'htmlCssTweaks',      name: 'HTML/CSS Tweaks',         category: 'Gig', level: 'specific', parentId: 'webSetup' },
+  
+    // ────────────────────────────────────────────
+    // Level 2 (Specific) – under Administrative & Office Support
+    // ────────────────────────────────────────────
+    { id: 'filing',        name: 'Filing & Document Organization', category: 'Gig', level: 'specific', parentId: 'admin' },
+    { id: 'meetingSetup',  name: 'Meeting Setup',                  category: 'Gig', level: 'specific', parentId: 'admin' },
+    { id: 'onlineResearch',name: 'Online Research',                category: 'Gig', level: 'specific', parentId: 'admin' },
+    { id: 'surveyAdmin',   name: 'Survey Administration',          category: 'Gig', level: 'specific', parentId: 'admin' },
+  
+    // Level 3 – under Online Research
+    { id: 'marketResearch', name: 'Market Research',               category: 'Gig', level: 'specific', parentId: 'onlineResearch' },
+  
+    // ────────────────────────────────────────────
+    // Level 2 (Specific) – under Event Support
+    // ────────────────────────────────────────────
+    { id: 'setupTeardown',   name: 'Setup & Teardown',             category: 'Gig', level: 'specific', parentId: 'event' },
+    { id: 'onsiteAssist',    name: 'On-site Assistance',            category: 'Gig', level: 'specific', parentId: 'event' },
+  
+    // Level 3 – under Setup & Teardown
+    { id: 'venueSetup',       name: 'Venue Setup',                  category: 'Gig', level: 'specific', parentId: 'setupTeardown' },
+    { id: 'decorInstallation',name: 'Decoration Installation',      category: 'Gig', level: 'specific', parentId: 'setupTeardown' },
+  
+    // Level 3 – under On-site Assistance
+    { id: 'ushering',         name: 'Ushering',                     category: 'Gig', level: 'specific', parentId: 'onsiteAssist' },
+    { id: 'ticketScanning',   name: 'Ticket Scanning',              category: 'Gig', level: 'specific', parentId: 'onsiteAssist' },
+    { id: 'registrationDesk', name: 'Registration Desk',            category: 'Gig', level: 'specific', parentId: 'onsiteAssist' },
+  
 
-  // Business specific (level 2)
-  { id: 'marketing', name: 'Marketing', category: 'Business', level: 'specific', parentId: 'business' },
-  { id: 'sales', name: 'Sales', category: 'Business', level: 'specific', parentId: 'business' },
-  { id: 'project-management', name: 'Project Management', category: 'Business', level: 'specific', parentId: 'business' },
-  { id: 'consulting', name: 'Consulting', category: 'Business', level: 'specific', parentId: 'business' },
-  { id: 'finance', name: 'Finance', category: 'Business', level: 'specific', parentId: 'business' },
+  // ────────────────────────────────────────────
+  // Level 2 (Specific) – Personal Care
+  // ────────────────────────────────────────────
+  { id: 'companionship',   name: 'Companionship',                    category: 'Gig', level: 'specific', parentId: 'personalCare' },
+  { id: 'dressingAssist',  name: 'Dressing Assistance',             category: 'Gig', level: 'specific', parentId: 'personalCare' },
+  { id: 'groomingAssist',  name: 'Grooming Assistance',             category: 'Gig', level: 'specific', parentId: 'personalCare' },
+  { id: 'mobilityAssist',  name: 'Mobility Assistance',             category: 'Gig', level: 'specific', parentId: 'personalCare' },
 
-  // Services specific (level 2)
-  { id: 'virtual-assistant', name: 'Virtual Assistant', category: 'Services', level: 'specific', parentId: 'services' },
-  { id: 'translation', name: 'Translation', category: 'Services', level: 'specific', parentId: 'services' },
-  { id: 'tutoring', name: 'Tutoring', category: 'Services', level: 'specific', parentId: 'services' },
-  { id: 'event-planning', name: 'Event Planning', category: 'Services', level: 'specific', parentId: 'services' },
-  { id: 'cleaning', name: 'Cleaning', category: 'Services', level: 'specific', parentId: 'services' },
+  // Level 3 (subSpecific) – under Companionship
+  { id: 'conversation',    name: 'Conversation & Reading Aloud',     category: 'Gig', level: 'specific', parentId: 'companionship' },
+  { id: 'activityCompanion', name: 'Activity Companion (Walks/Games)',category: 'Gig', level: 'specific', parentId: 'companionship' },
 
-  // Web Development detailed (level 3)
-  { id: 'frontend', name: 'Frontend Development', category: 'Technology', level: 'detailed', parentId: 'web-dev' },
-  { id: 'backend', name: 'Backend Development', category: 'Technology', level: 'detailed', parentId: 'web-dev' },
-  { id: 'fullstack', name: 'Full Stack Development', category: 'Technology', level: 'detailed', parentId: 'web-dev' },
-  { id: 'wordpress', name: 'WordPress', category: 'Technology', level: 'detailed', parentId: 'web-dev' },
-  { id: 'ecommerce', name: 'E-commerce Development', category: 'Technology', level: 'detailed', parentId: 'web-dev' },
+  // Level 4 (micro) – under Activity Companion
+  { id: 'playCards',       name: 'Play Card Games',                  category: 'Gig', level: 'specific',    parentId: 'activityCompanion' },
+  { id: 'readAloud',       name: 'Read Books Aloud',                 category: 'Gig', level: 'specific',    parentId: 'activityCompanion' },
 
-  // Graphic Design detailed (level 3)
-  { id: 'logo-design', name: 'Logo Design', category: 'Creative', level: 'detailed', parentId: 'graphic-design' },
-  { id: 'branding', name: 'Branding', category: 'Creative', level: 'detailed', parentId: 'graphic-design' },
-  { id: 'illustration', name: 'Illustration', category: 'Creative', level: 'detailed', parentId: 'graphic-design' },
-  { id: 'print-design', name: 'Print Design', category: 'Creative', level: 'detailed', parentId: 'graphic-design' },
-  { id: 'social-media-graphics', name: 'Social Media Graphics', category: 'Creative', level: 'detailed', parentId: 'graphic-design' },
+  // ────────────────────────────────────────────
+  // Level 2 (Specific) – Transport & Driving
+  // ────────────────────────────────────────────
+  { id: 'courier',         name: 'Courier Service',                  category: 'Gig', level: 'specific', parentId: 'transport' },
+  { id: 'vehicleReloc',    name: 'Vehicle Relocation',               category: 'Gig', level: 'specific', parentId: 'transport' },
+  { id: 'airportRide',     name: 'Airport Transportation',           category: 'Gig', level: 'specific', parentId: 'transport' },
 
-  // Marketing detailed (level 3)
-  { id: 'digital-marketing', name: 'Digital Marketing', category: 'Business', level: 'detailed', parentId: 'marketing' },
-  { id: 'social-media-marketing', name: 'Social Media Marketing', category: 'Business', level: 'detailed', parentId: 'marketing' },
-  { id: 'content-marketing', name: 'Content Marketing', category: 'Business', level: 'detailed', parentId: 'marketing' },
-  { id: 'seo', name: 'SEO', category: 'Business', level: 'detailed', parentId: 'marketing' },
-  { id: 'email-marketing', name: 'Email Marketing', category: 'Business', level: 'detailed', parentId: 'marketing' },
+  // Level 3 – under Courier
+  { id: 'deliverSmallPkgs',name: 'Deliver Small Packages',           category: 'Gig', level: 'specific', parentId: 'courier' },
+  { id: 'expressDocs',     name: 'Express Documents',               category: 'Gig', level: 'specific', parentId: 'courier' },
 
-  // Music detailed (level 3)
-  { id: 'music-production', name: 'Music Production', category: 'Creative', level: 'detailed', parentId: 'music' },
-  { id: 'guitar-lessons', name: 'Guitar Lessons', category: 'Creative', level: 'detailed', parentId: 'music' },
-  { id: 'piano-lessons', name: 'Piano Lessons', category: 'Creative', level: 'detailed', parentId: 'music' },
-  { id: 'vocal-training', name: 'Vocal Training', category: 'Creative', level: 'detailed', parentId: 'music' },
-  { id: 'songwriting', name: 'Songwriting', category: 'Creative', level: 'detailed', parentId: 'music' },
+  // Level 4 – micro
+  { id: 'trackShipment',   name: 'Shipment Tracking Updates',        category: 'Gig', level: 'specific',    parentId: 'expressDocs' },
+
+  // ────────────────────────────────────────────
+  // Level 2 (Specific) – Landscaping & Gardening
+  // ────────────────────────────────────────────
+  { id: 'planting',        name: 'Planting & Transplanting',         category: 'Gig', level: 'specific', parentId: 'landscaping' },
+  { id: 'mulching',        name: 'Mulching',                         category: 'Gig', level: 'specific', parentId: 'landscaping' },
+  { id: 'edging',          name: 'Lawn Edging',                      category: 'Gig', level: 'specific', parentId: 'landscaping' },
+  { id: 'irrigationTune',  name: 'Irrigation Check & Tune-Up',       category: 'Gig', level: 'specific', parentId: 'landscaping' },
+
+  // Level 3 – under Planting
+  { id: 'flowerBedLayout', name: 'Flower Bed Layout',               category: 'Gig', level: 'specific', parentId: 'planting' },
+  { id: 'containerPlants', name: 'Container Planting',              category: 'Gig', level: 'specific', parentId: 'planting' },
+
+  // Level 4 – micro
+  { id: 'seedSowing',      name: 'Seed Sowing',                      category: 'Gig', level: 'specific',    parentId: 'flowerBedLayout' },
+
+  // ────────────────────────────────────────────
+  // Level 2 (Specific) – Tech Development
+  // ────────────────────────────────────────────
+  { id: 'scriptWriting',   name: 'Script Writing (Python/Batch)',    category: 'Gig', level: 'specific', parentId: 'techDev' },
+  { id: 'automationSetup', name: 'Zapier/IFTTT Automations',         category: 'Gig', level: 'specific', parentId: 'techDev' },
+  { id: 'cmsCustom',       name: 'CMS Customization',                category: 'Gig', level: 'specific', parentId: 'techDev' },
+
+  // Level 3 – under Script Writing
+  { id: 'fileRenameScript',name: 'File Rename Script',              category: 'Gig', level: 'specific', parentId: 'scriptWriting' },
+
+  // Level 4 – micro
+  { id: 'emailParseScript',name: 'Email Parsing Script',             category: 'Gig', level: 'specific',    parentId: 'fileRenameScript' },
+
+  // ────────────────────────────────────────────
+  // Level 2 (Specific) – Writing & Editing
+  // ────────────────────────────────────────────
+  { id: 'blogWriting',     name: 'Blog Writing',                    category: 'Gig', level: 'specific', parentId: 'writing' },
+  { id: 'resumeWriting',   name: 'Resume & Cover Letter',           category: 'Gig', level: 'specific', parentId: 'writing' },
+  { id: 'copywriting',     name: 'Sales & Ad Copywriting',          category: 'Gig', level: 'specific', parentId: 'writing' },
+  { id: 'proofreading',    name: 'Proofreading & Editing',          category: 'Gig', level: 'specific', parentId: 'writing' },
+
+  // Level 3 – under Blog Writing
+  { id: 'seoBlogPost',     name: 'SEO-Optimized Blog Post',         category: 'Gig', level: 'specific', parentId: 'blogWriting' },
+
+  // ────────────────────────────────────────────
+  // Level 2 (Specific) – Tutoring & Education
+  // ────────────────────────────────────────────
+  { id: 'mathTutor',       name: 'Math Tutoring',                   category: 'Gig', level: 'specific', parentId: 'tutoring' },
+  { id: 'langTutor',       name: 'Language Tutoring',               category: 'Gig', level: 'specific', parentId: 'tutoring' },
+  { id: 'softwareTrain',   name: 'Software Training (Office)',      category: 'Gig', level: 'specific', parentId: 'tutoring' },
+
+  // Level 3 – under Language Tutoring
+  { id: 'spanishConv',     name: 'Spanish Conversation Practice',   category: 'Gig', level: 'specific', parentId: 'langTutor' },
+
+  // ────────────────────────────────────────────
+  // Level 2 (Specific) – Photography & Media
+  // ────────────────────────────────────────────
+  { id: 'eventPhoto',      name: 'Event Photography',               category: 'Gig', level: 'specific', parentId: 'photography' },
+  { id: 'productPhoto',    name: 'Product Photography',             category: 'Gig', level: 'specific', parentId: 'photography' },
+  { id: 'slideshowCreate', name: 'Photo Slideshow Creation',        category: 'Gig', level: 'specific', parentId: 'photography' },
+
+  // ────────────────────────────────────────────
+  // Level 2 (Specific) – Marketing & Social Media
+  // ────────────────────────────────────────────
+  { id: 'socialSched',     name: 'Social Media Scheduling',         category: 'Gig', level: 'specific', parentId: 'marketing' },
+  { id: 'hashtagResearch', name: 'Hashtag & Keyword Research',     category: 'Gig', level: 'specific', parentId: 'marketing' },
+  { id: 'emailCampaign',   name: 'Email Campaign Setup',            category: 'Gig', level: 'specific', parentId: 'marketing' },
+
+  // Level 3 – under Social Media Scheduling
+  { id: 'postDesign',      name: 'Post Design Templates',           category: 'Gig', level: 'specific', parentId: 'socialSched' },
+
+  // ────────────────────────────────────────────
+  // Level 2 (Specific) – Finance & Bookkeeping
+  // ────────────────────────────────────────────
+  { id: 'bookkeeping',     name: 'Bookkeeping Entry',               category: 'Gig', level: 'specific', parentId: 'finance' },
+  { id: 'invoiceCreate',   name: 'Invoice Creation',                category: 'Gig', level: 'specific', parentId: 'finance' },
+  { id: 'expenseTrack',    name: 'Expense Tracking',                category: 'Gig', level: 'specific', parentId: 'finance' },
+
+  // ────────────────────────────────────────────
+  // Level 2 (Specific) – Logistics & Shipping
+  // ────────────────────────────────────────────
+  { id: 'packing',         name: 'Item Packing',                    category: 'Gig', level: 'specific', parentId: 'logistics' },
+  { id: 'labeling',        name: 'Labeling & Barcoding',            category: 'Gig', level: 'specific', parentId: 'logistics' },
+  { id: 'pickupCoord',     name: 'Pickup Coordination',             category: 'Gig', level: 'specific', parentId: 'logistics' },
+
+  // ────────────────────────────────────────────
+  // Level 2 (Specific) – Personal Assistance
+  // ────────────────────────────────────────────
+  { id: 'apptSchedule',    name: 'Appointment Scheduling',          category: 'Gig', level: 'specific', parentId: 'personalAsst' },
+  { id: 'travelBook',      name: 'Travel Research & Booking',       category: 'Gig', level: 'specific', parentId: 'personalAsst' },
+  { id: 'giftPurchase',    name: 'Gift Purchasing',                 category: 'Gig', level: 'specific', parentId: 'personalAsst' },
+
+  // Level 3 – under Travel Research
+  { id: 'flightSearch',    name: 'Flight Price Comparison',         category: 'Gig', level: 'specific', parentId: 'travelBook' },
+  { id: 'hotelResearch',   name: 'Hotel Comparison',                category: 'Gig', level: 'specific', parentId: 'travelBook' },
+  
+  // ────────────────────────────────────────────
+  // (Keep 'other' at the bottom for catch-alls)
+  // ────────────────────────────────────────────
 ];
 
 export default function SkillBubbleDiscovery({ onComplete, onSkip }: SkillBubbleDiscoveryProps) {

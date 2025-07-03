@@ -10,13 +10,17 @@ interface JobCardProps {
   onPress: (job: Job) => void;
   showMatchScore?: boolean;
   matchScore?: number;
+  showUrgency?: boolean;
+  showHighPay?: boolean;
 }
 
 export const JobCard: React.FC<JobCardProps> = ({ 
   job, 
   onPress, 
   showMatchScore = false, 
-  matchScore 
+  matchScore,
+  showUrgency = false,
+  showHighPay = false
 }) => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -45,6 +49,16 @@ export const JobCard: React.FC<JobCardProps> = ({
     return `$${job.budget.min.toLocaleString()} - $${job.budget.max.toLocaleString()}`;
   };
 
+  const isUrgent = () => {
+    const urgentKeywords = ['urgent', 'asap', 'immediate', 'today', 'tonight', 'emergency', 'quick', 'fast', 'rush'];
+    const text = `${job.title} ${job.description}`.toLowerCase();
+    return urgentKeywords.some(keyword => text.includes(keyword));
+  };
+
+  const isHighPaying = () => {
+    return job.budget.min >= 50 || job.budget.max >= 100;
+  };
+
   return (
     <TouchableOpacity 
       style={[styles.container, { backgroundColor: colors.background }]} 
@@ -63,8 +77,20 @@ export const JobCard: React.FC<JobCardProps> = ({
             </View>
           )}
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(job.status) }]}>
-          <Text style={styles.statusText}>{job.status}</Text>
+        <View style={styles.badgeContainer}>
+          {showUrgency && isUrgent() && (
+            <View style={[styles.urgencyBadge, { backgroundColor: '#FF5722' }]}>
+              <Text style={styles.badgeText}>🚨 Urgent</Text>
+            </View>
+          )}
+          {showHighPay && isHighPaying() && (
+            <View style={[styles.highPayBadge, { backgroundColor: '#FFD700' }]}>
+              <Text style={styles.badgeText}>💎 High Pay</Text>
+            </View>
+          )}
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(job.status) }]}>
+            <Text style={styles.statusText}>{job.status}</Text>
+          </View>
         </View>
       </View>
 
@@ -139,6 +165,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 24,
   },
+  badgeContainer: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
   matchScoreContainer: {
     alignItems: 'center',
     backgroundColor: '#4CAF50',
@@ -155,6 +185,21 @@ const styles = StyleSheet.create({
   matchScoreLabel: {
     color: 'white',
     fontSize: 10,
+  },
+  urgencyBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  highPayBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
   },
   statusBadge: {
     paddingHorizontal: 8,
