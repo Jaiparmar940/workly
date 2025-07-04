@@ -7,13 +7,13 @@ import { Experience } from '@/types';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Dimensions,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    View,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import OnboardingProgressBar from '../components/OnboardingProgressBar';
 import SkillBubbleDiscovery, { SKILL_DATA } from '../components/SkillBubbleDiscovery';
@@ -106,10 +106,10 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      <KeyboardAvoidingView
+    <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: colors.background }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
         <View style={{ flex: 1 }}>
           <OnboardingProgressBar currentStep={1} totalSteps={4} stepLabels={STEP_LABELS} color={colors.tint} />
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
@@ -121,10 +121,10 @@ export default function OnboardingScreen() {
                 onComplete={handleSkillDiscoveryComplete}
                 onSkip={() => router.replace('/onboarding-missed-skills')}
               />
-            </ThemedView>
-          </ScrollView>
+        </ThemedView>
+      </ScrollView>
         </View>
-      </KeyboardAvoidingView>
+    </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

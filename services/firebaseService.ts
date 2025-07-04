@@ -1390,9 +1390,28 @@ I look forward to hearing from you!`,
       console.log('FirebaseService: Starting profile image upload for user:', userId);
       console.log('FirebaseService: Image URI:', uri);
       
+      // Validate URI
+      if (!uri || uri.trim() === '') {
+        throw new Error('Invalid image URI provided');
+      }
+      
+      // Handle different URI formats for React Native
+      let fetchUri = uri;
+      if (uri.startsWith('file://')) {
+        // For local file URIs, we need to handle them differently
+        console.log('FirebaseService: Handling local file URI');
+      } else if (uri.startsWith('data:')) {
+        // For data URIs, we can use them directly
+        console.log('FirebaseService: Handling data URI');
+      } else if (!uri.startsWith('http')) {
+        // For relative paths, assume it's a local file
+        fetchUri = `file://${uri}`;
+        console.log('FirebaseService: Converting to file URI:', fetchUri);
+      }
+      
       // Fetch the image as a blob
       console.log('FirebaseService: Fetching image as blob...');
-      const response = await fetch(uri);
+      const response = await fetch(fetchUri);
       if (!response.ok) {
         throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
       }
@@ -1400,13 +1419,25 @@ I look forward to hearing from you!`,
       const blob = await response.blob();
       console.log('FirebaseService: Image blob size:', blob.size, 'bytes');
       
+      // Validate blob
+      if (blob.size === 0) {
+        throw new Error('Image blob is empty');
+      }
+      
       // Create a storage ref
       const imageRef = ref(storage, `profilePictures/${userId}.jpg`);
       console.log('FirebaseService: Storage reference created:', imageRef.fullPath);
       
-      // Upload the blob
+      // Upload the blob with proper metadata
       console.log('FirebaseService: Uploading blob to Firebase Storage...');
-      await uploadBytes(imageRef, blob, { contentType: 'image/jpeg' });
+      await uploadBytes(imageRef, blob, { 
+        contentType: 'image/jpeg',
+        customMetadata: {
+          uploadedBy: userId,
+          uploadedAt: new Date().toISOString(),
+          originalUri: uri
+        }
+      });
       console.log('FirebaseService: Upload successful');
       
       // Get the download URL
@@ -1420,8 +1451,21 @@ I look forward to hearing from you!`,
       console.error('FirebaseService: Error details:', {
         code: error?.code,
         message: error?.message,
-        serverResponse: error?.serverResponse
+        serverResponse: error?.serverResponse,
+        uri: uri
       });
+      
+      // Provide more specific error messages
+      if (error?.code === 'storage/unauthorized') {
+        throw new Error('Storage access denied. Please check your authentication and storage rules.');
+      } else if (error?.code === 'storage/bucket-not-found') {
+        throw new Error('Storage bucket not found. Please check your Firebase configuration.');
+      } else if (error?.code === 'storage/unknown') {
+        throw new Error('Storage service error. This might be due to Expo Go limitations. Try using a development build.');
+      } else if (error?.message?.includes('fetch')) {
+        throw new Error('Failed to read image file. Please try selecting a different image.');
+      }
+      
       throw error;
     }
   }

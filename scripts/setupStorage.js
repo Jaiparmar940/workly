@@ -24,11 +24,12 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     // Users can upload and read their own profile pictures
+    // Simplified rules for testing - remove email verification requirement
     match /profilePictures/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Allow public read access to profile pictures (optional)
+    // Allow public read access to profile pictures
     match /profilePictures/{userId} {
       allow read: if true;
     }

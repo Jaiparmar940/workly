@@ -41,7 +41,7 @@ export default function OnboardingProfileBio() {
   const [languages, setLanguages] = useState<{ english: boolean; spanish: boolean }>({ english: true, spanish: false });
   const [image, setImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const { currentUser, updateUserProfile } = useAuthContext();
+  const { currentUser, user, updateUserProfile } = useAuthContext();
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -60,30 +60,49 @@ export default function OnboardingProfileBio() {
   };
 
   const handleContinue = async (skipped = false) => {
-    if (!currentUser) return;
+    if (!currentUser || !user) {
+      console.error('User not authenticated');
+      alert('Please sign in to continue');
+      return;
+    }
+    
     setUploading(true);
     try {
       let avatarUrl = currentUser.avatar || null;
+      
+      // Try to upload image if available and not skipped
       if (image && !skipped) {
-        avatarUrl = await FirebaseService.uploadProfileImage(currentUser.id, image);
+        try {
+          // Use the authenticated Firebase user's UID
+          avatarUrl = await FirebaseService.uploadProfileImage(user.uid, image);
+          console.log('Profile image uploaded successfully:', avatarUrl);
+        } catch (uploadError) {
+          console.error('Failed to upload profile image, continuing without it:', uploadError);
+          // Continue without the image upload - avatarUrl remains null or current value
+        }
       }
+      
       const prevSkipped = params.skippedSteps ? JSON.parse(params.skippedSteps as string) : [];
       const newSkipped = skipped ? [...prevSkipped, 'profileBio'] : prevSkipped;
       const workerProfileComplete = newSkipped.length === 0;
       const languagesSpoken = Object.entries(languages)
         .filter(([_, v]) => v)
         .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1));
-      await updateUserProfile(currentUser.id, {
+      
+      // Use the authenticated Firebase user's UID for profile update
+      await updateUserProfile(user.uid, {
         avatar: avatarUrl,
         bio,
         languages: languagesSpoken,
         workerProfileComplete,
         skills: skillsWithExperience,
       });
+      
       router.replace('/welcome');
     } catch (err) {
       console.error('Error updating profile:', err);
-      // Optionally show error to user
+      // Show a user-friendly error message
+      alert('Failed to update profile. Please try again.');
     } finally {
       setUploading(false);
     }
